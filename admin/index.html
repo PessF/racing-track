@@ -116,7 +116,7 @@
     <script src="../bootstrap/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        const socketHost = '192.168.2.243:1880';
+        const socketHost = `${location.hostname}:1880`;
         
         const adminControlSocket = new WebSocket('ws://' + socketHost + '/ws/admin-controller');
 
@@ -167,7 +167,14 @@
         };
 
         // แก้ไขให้รองรับชื่อตัวแปร item.runtime และปรับทศนิยม
-        new WebSocket('ws://' + socketHost + '/ws/leaderboard').onmessage = (e) => {
+// แก้ไขระบบ Leaderboard ให้ส่งสัญญาณขอข้อมูล (request_data) ตอนเปิดหน้าเว็บด้วย
+        const lbSocket = new WebSocket('ws://' + socketHost + '/ws/leaderboard');
+
+        lbSocket.onopen = () => {
+            lbSocket.send("request_data"); // สั่งให้ทักไปขอข้อมูลจาก Node-RED ทันทีที่เชื่อมต่อสำเร็จ
+        };
+
+        lbSocket.onmessage = (e) => {
             const data = JSON.parse(e.data);
             const body = document.getElementById('leaderboard-body');
             body.innerHTML = '';
