@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RACE CONTROL CENTER</title>
+    
+    <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
+    
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            touch-action: manipulation;
+        }
+        
+        .font-num {
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-weight: 700;
+        }
+
+        .card-custom {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            background-color: #cbd5e1;
+            color: #334155;
+        }
+        .status-active {
+            background-color: #10b981;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="py-3">
+
+    <div class="container-fluid px-3" style="max-width: 1200px;">
+        <div class="row g-3">
+            
+            <div class="col-lg-6 d-flex flex-column gap-3">
+                <div class="card-custom">
+                    <h2 class="h6 fw-bold text-uppercase text-secondary border-bottom pb-2 mb-3">Race Control Panel</h2>
+                    
+                    <div class="mb-3">
+                        <label for="team-input" class="form-label small fw-bold text-muted text-uppercase">ชื่อทีมผู้เข้าแข่งขัน</label>
+                        <input type="text" id="team-input" class="form-control fw-semibold" list="team-list" placeholder="ดับเบิ้ลคลิกเลือก หรือพิมพ์ชื่อทีม..." autocomplete="off">
+                        
+                        <datalist id="team-list">
+                            <option value="EasyKids Team A"></option>
+                            <option value="EasyKids Team B"></option>
+                            <option value="Robot Fighter X"></option>
+                            <option value="Storm Runner"></option>
+                            <option value="Alpha One"></option>
+                        </datalist>
+                    </div>
+
+                    <button class="btn btn-success w-100 py-2.5 fw-bold text-uppercase shadow-sm mb-2" onclick="sendReadyCommand()">
+                        ส่งรายชื่อ & ตั้งค่าพร้อม (READY)
+                    </button>
+                </div>
+
+                <div class="card-custom">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-semibold text-muted">สถานะสนามปัจจุบัน:</span>
+                        <span id="mon-status" class="status-badge">READY</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="small fw-semibold text-muted">เวลาวิ่งรอบนี้:</span>
+                        <span id="mon-time" class="font-num text-dark fs-5">0.000 s</span>
+                    </div>
+                </div>
+
+                <div class="card-custom bg-light border-dashed py-2 text-center">
+                    <button class="btn btn-link btn-sm text-danger text-decoration-none fw-semibold p-0" onclick="sendResetCommand()">
+                        ⚠️ รีเซ็ตระบบสนามแข่ง (Reset System)
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card-custom h-100">
+                    <h2 class="h6 fw-bold text-uppercase text-secondary border-bottom pb-2 mb-3">Official Leaderboard</h2>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle m-0" style="font-size: 0.95rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 50px;">อันดับ</th>
+                                    <th>ชื่อทีม</th>
+                                    <th class="text-end" style="width: 100px;">เวลา (s)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-body">
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4 small">กำลังรอข้อมูลอันดับ...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script src="../bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const socketHost = '192.168.2.243:1880';
+        
+        const adminControlSocket = new WebSocket('ws://' + socketHost + '/ws/admin-controller');
+
+        function sendReadyCommand() {
+            const teamInput = document.getElementById('team-input');
+            const teamName = teamInput.value.trim();
+
+            if (teamName === "") {
+                alert("❌ กรุณากรอกหรือเลือกชื่อทีมก่อนครับ");
+                return;
+            }
+
+            const payload = { action: "register", team_name: teamName };
+            adminControlSocket.send(JSON.stringify(payload));
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function sendResetCommand() {
+            if (confirm("⚠️ คุณต้องการล้างค่าเวลาและรีเซ็ตระบบใช่หรือไม่?")) {
+                const payload = { action: "reset" };
+                adminControlSocket.send(JSON.stringify(payload));
+                document.getElementById('team-input').value = ""; 
+            }
+        }
+
+        new WebSocket('ws://' + socketHost + '/ws/race-in-status').onmessage = (e) => {
+            const statusText = e.data.trim();
+            const badge = document.getElementById('mon-status');
+            
+            // อัปเดตสี Badge ตามสถานะต่างๆ รวมถึง FINISHED
+            badge.className = 'status-badge' + 
+                ((statusText === 'RACING' || statusText === 'START') ? ' status-active' : '') +
+                ((statusText === 'FINISHED') ? ' bg-warning text-dark' : '');
+            
+            if(statusText === 'RESET') {
+                badge.innerText = 'READY';
+                document.getElementById('mon-time').innerText = "0.000 s";
+            } else {
+                badge.innerText = statusText;
+            }
+        };
+        
+        new WebSocket('ws://' + socketHost + '/ws/in-race-time').onmessage = (e) => {
+            const timeValue = parseFloat(e.data);
+            if (!isNaN(timeValue)) {
+                document.getElementById('mon-time').innerText = timeValue.toFixed(3) + " s";
+            }
+        };
+
+        // แก้ไขให้รองรับชื่อตัวแปร item.runtime และปรับทศนิยม
+        new WebSocket('ws://' + socketHost + '/ws/leaderboard').onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            const body = document.getElementById('leaderboard-body');
+            body.innerHTML = '';
+            
+            data.forEach((item, i) => {
+                if (!item.name || item.runtime === undefined) return;
+                const formattedTime = parseFloat(item.runtime).toFixed(3);
+                
+                body.innerHTML += `<tr>
+                    <td class="text-center fw-bold text-muted font-num">${i + 1}</td>
+                    <td class="fw-semibold text-dark text-truncate" style="max-width: 180px;">${item.name}</td>
+                    <td class="text-end text-primary font-num fw-bold">${formattedTime}</td>
+                </tr>`;
+            });
+        };
+    </script>
+</body>
+</html>

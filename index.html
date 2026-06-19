@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>RACE CENTER SCOREBOARD</title>
+    <style>
+        /* ==================== GLOBAL STYLES ==================== */
+        body { 
+            background-color: #030206; 
+            background-image: radial-gradient(circle at 50% -20%, #1a103c 0%, transparent 50%);
+            color: #ffffff; 
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding: 30px; 
+            height: 100vh; 
+            box-sizing: border-box; 
+            overflow: hidden; 
+        }
+        
+        .main-wrapper { 
+            display: flex; 
+            gap: 30px; 
+            height: 100%; 
+            width: 100%; 
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* ==================== RACING SIDE (60%) ==================== */
+        .racing-side { 
+            flex: 0.6; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 25px; 
+        }
+
+        .team-plate {
+            background: linear-gradient(90deg, #13111c 0%, #1e1533 100%);
+            border: 1px solid #2d244a;
+            border-left: 6px solid #a855f7;
+            padding: 25px 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+        }
+        
+        #team-display { 
+            font-size: 2.8rem; 
+            font-weight: 800; 
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(168,85,247,0.4);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card { 
+            background: #0d0b14; 
+            padding: 40px 50px; 
+            border-radius: 20px; 
+            border: 1px solid #1e1a2e;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: all 0.4s ease;
+        }
+
+        #status-card { border-top: 4px solid #3c2d54; }
+        #time-card { border-top: 4px solid #a855f7; background: linear-gradient(180deg, #110e1a 0%, #0d0b14 100%); }
+
+        .label { 
+            font-size: 1.2rem; 
+            color: #797393; 
+            text-transform: uppercase; 
+            letter-spacing: 4px;
+            margin-bottom: 15px; 
+            font-weight: 600;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 25px; 
+        }
+
+        .value { 
+            font-size: 5.5rem; 
+            font-weight: 900; 
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; 
+            letter-spacing: 2px;
+        }
+
+        .status-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #2d244a; 
+            transition: all 0.4s ease;
+        }
+
+        /* ==================== LEADERBOARD SIDE (40%) ==================== */
+        .leaderboard-side { 
+            flex: 0.4; 
+            background: #0d0b14; 
+            border: 1px solid #1e1a2e; 
+            border-top: 4px solid #2d244a;
+            border-radius: 20px; 
+            padding: 30px 40px; 
+            display: flex;
+            flex-direction: column;
+            box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+        }
+
+        .leaderboard-header {
+            font-size: 1.5rem;
+            color: #ffffff;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            font-weight: 800;
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #1e1a2e;
+        }
+
+        .table-container {
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 10px;
+        }
+
+        .table-container::-webkit-scrollbar { width: 6px; }
+        .table-container::-webkit-scrollbar-track { background: #0a0811; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb { background: #3c2d54; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #a855f7; }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+        th { color: #5c5573; text-align: left; padding: 0 15px 15px 15px; font-size: 0.9rem; letter-spacing: 2px; }
+        
+        tr.data-row { 
+            background: rgba(255, 255, 255, 0.02); 
+            transition: background 0.2s;
+        }
+        tr.data-row:hover { background: rgba(168, 85, 247, 0.05); }
+        
+        td { 
+            padding: 18px 15px; 
+            font-size: 1.4rem; 
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
+            font-weight: 700;
+        }
+        
+        td:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+        td:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; color: #a855f7; text-align: right; }
+
+        .team-name-cell { font-family: system-ui, -apple-system, sans-serif; font-weight: 600; font-size: 1.2rem; }
+
+        tr:nth-child(1) .rank-highlight { color: #ffcc00; text-shadow: 0 0 15px rgba(255,204,0,0.4); }
+        tr:nth-child(2) .rank-highlight { color: #e2e8f0; text-shadow: 0 0 10px rgba(226,232,240,0.3); }
+        tr:nth-child(3) .rank-highlight { color: #f6ad55; text-shadow: 0 0 10px rgba(246,173,85,0.3); }
+        .rank-highlight { color: #4a4163; text-align: center; } 
+
+        /* ==================== DYNAMIC LEADERBOARD ANIMATION ==================== */
+        /* คลาสสลับตำแหน่งแถวแบบสมูทเลื่อนไหล */
+        .animate-move {
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s ease-out !important;
+        }
+        
+        /* ข้อมูลใหม่โผล่เข้ามาติด Top 10 */
+        .row-new-entry {
+            animation: slideInNewRow 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @keyframes slideInNewRow {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ==================== DYNAMIC STATUS EFFECTS ==================== */
+        .status-racing { 
+            color: #00ffcc !important; 
+            text-shadow: 0 0 25px rgba(0,255,204,0.3) !important;
+        }
+        .dot-racing {
+            background-color: #00ffcc !important;
+            box-shadow: 0 0 20px #00ffcc, 0 0 40px #00ffcc;
+            animation: pulseDot 1.2s infinite ease-in-out; 
+        }
+        .card-racing {
+            border-top-color: #00ffcc !important;
+            background: #061715 !important;
+            box-shadow: inset 0 0 50px rgba(0,255,204,0.05) !important;
+        }
+
+        .status-finish { 
+            color: #ffcc00 !important; 
+            text-shadow: 0 0 25px rgba(255,204,0,0.3) !important; 
+        }
+        .dot-finish {
+            background-color: #ffcc00 !important;
+            box-shadow: 0 0 20px #ffcc00, 0 0 35px #ffcc00;
+        }
+        .card-finish {
+            border-top-color: #ffcc00 !important;
+            background: #171407 !important;
+            box-shadow: inset 0 0 50px rgba(255,204,0,0.05) !important;
+        }
+
+        @keyframes pulseDot { 
+            0% { opacity: 1; transform: scale(1); } 
+            50% { opacity: 0.2; transform: scale(0.92); } 
+            100% { opacity: 1; transform: scale(1); } 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper">
+        <div class="racing-side">
+            <div class="team-plate">
+                <div id="team-display">TEAM: ---</div>
+            </div>
+
+            <div class="card" id="status-card">
+                <div class="label">TRACK STATUS</div>
+                <div class="status-container">
+                    <div id="status-display" class="value">READY</div>
+                    <div id="status-indicator" class="status-dot"></div>
+                </div>
+            </div>
+
+            <div class="card" id="time-card">
+                <div class="label">LAP TIME</div>
+                <div id="time-display" class="value" style="color: #a855f7; text-shadow: 0 0 20px rgba(168,85,247,0.3);">0.000 s</div>
+            </div>
+        </div>
+
+        <div class="leaderboard-side">
+            <div class="leaderboard-header">LIVE LEADERBOARD</div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 15%; text-align: center;">RANK</th>
+                            <th style="width: 55%;">TEAM</th>
+                            <th style="width: 30%; text-align: right;">TIME</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <tr><td colspan="3" style="text-align:center; color:#3c2d54; font-family: system-ui, sans-serif; padding-top: 40px;">WAITING FOR DATA...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socketHost = '192.168.2.243:1880';
+        
+        // รับชื่อทีม
+        new WebSocket('ws://' + socketHost + '/ws/race-in-team').onmessage = (e) => {
+            const teamName = e.data.trim();
+            document.getElementById('team-display').innerText = teamName ? "TEAM: " + teamName : "TEAM: ---";
+        };
+
+        // รับสถานะ (เพิ่มการรองรับสถานะ FINISHED)
+        new WebSocket('ws://' + socketHost + '/ws/race-in-status').onmessage = (e) => {
+            const statusText = e.data.trim();
+            const disp = document.getElementById('status-display');
+            const card = document.getElementById('status-card');
+            const dot = document.getElementById('status-indicator');
+            
+            disp.className = 'value';
+            card.className = 'card';
+            dot.className = 'status-dot';
+            
+            if (statusText === 'RESET') {
+                disp.innerText = "READY";
+                document.getElementById('time-display').innerText = "0.000 s";
+            } else {
+                disp.innerText = statusText;
+            }
+
+            if (statusText === 'READY') {
+                document.getElementById('time-display').innerText = "0.000 s";
+            } else if (statusText === 'START' || statusText === 'RACING') {
+                disp.classList.add('status-racing');
+                card.classList.add('card-racing');
+                dot.classList.add('dot-racing');
+            } else if (statusText === 'FINISHED') {
+                disp.classList.add('status-finish');
+                card.classList.add('card-finish');
+                dot.classList.add('dot-finish');
+            }
+        };
+
+        // รับเวลาวิ่งจบ (แสดงเป็นทศนิยม 3 ตำแหน่งเสมอ)
+        new WebSocket('ws://' + socketHost + '/ws/in-race-time').onmessage = (e) => {
+            const timeValue = parseFloat(e.data);
+            if (!isNaN(timeValue)) {
+                document.getElementById('time-display').innerText = timeValue.toFixed(3) + " s";
+            }
+            // ปล่อยให้ระบบสีและสถานะ FINISHED ทำงานผ่าน /ws/status แทน
+        };
+
+        // เชื่อมต่อบอร์ดผู้นำ
+        const lbSocket = new WebSocket('ws://' + socketHost + '/ws/leaderboard');
+
+        lbSocket.onopen = () => {
+            lbSocket.send("request_data");
+        };
+
+        // ระบบคำนวณตำแหน่งแถวสลับอัตโนมัติ (FLIP Technique)
+        lbSocket.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            const body = document.getElementById('leaderboard-body');
+            
+            // 1. [FIRST] บันทึกตำแหน่งความสูงพิกเซลเดิม
+            const oldPositions = {};
+            body.querySelectorAll('.data-row').forEach(row => {
+                const teamName = row.getAttribute('data-team');
+                if (teamName) {
+                    oldPositions[teamName] = row.getBoundingClientRect().top;
+                }
+            });
+
+            // 2. เรนเดอร์ข้อมูลเซ็ตใหม่ลงตาราง (แก้ตัวแปรเป็น item.runtime)
+            let newRowsHTML = '';
+            data.forEach((item, i) => {
+                if (!item.name || item.runtime === undefined) return; 
+                const safeName = item.name.replace(/"/g, '&quot;');
+                const formattedTime = parseFloat(item.runtime).toFixed(3); // บังคับทศนิยม 3 ตำแหน่ง
+                
+                newRowsHTML += `<tr class="data-row" data-team="${safeName}">
+                    <td class="rank-highlight">${i + 1}</td>
+                    <td class="team-name-cell">${item.name}</td>
+                    <td>${formattedTime} s</td>
+                </tr>`;
+            });
+
+            if (!newRowsHTML) {
+                body.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#3c2d54; font-family: system-ui, sans-serif; padding-top: 40px;">WAITING FOR DATA...</td></tr>';
+                return;
+            }
+
+            body.innerHTML = newRowsHTML;
+
+            // 3. [LAST & INVERT] หาค่าระยะต่าง
+            const updatedRows = body.querySelectorAll('.data-row');
+            updatedRows.forEach(row => {
+                const teamName = row.getAttribute('data-team');
+                
+                if (teamName && oldPositions[teamName] !== undefined) {
+                    const startTop = oldPositions[teamName];
+                    const endTop = row.getBoundingClientRect().top;
+                    const deltaY = startTop - endTop;
+
+                    if (deltaY !== 0) {
+                        row.style.transform = `translateY(${deltaY}px)`;
+                        row.style.transition = 'none';
+                    }
+                } else {
+                    row.classList.add('row-new-entry');
+                }
+            });
+
+            // 4. [PLAY] สั่งแอนิเมชันเริ่มทำงาน
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    updatedRows.forEach(row => {
+                        row.classList.add('animate-move');
+                        row.style.transform = ''; 
+                    });
+                });
+            });
+        };
+    </script>
+</body>
+</html>

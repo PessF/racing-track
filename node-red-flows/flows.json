@@ -1,0 +1,539 @@
+[
+    {
+        "id": "94d6c2c658ab6ff3",
+        "type": "tab",
+        "label": "race-tracking-module",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "a7d61573dac27aa4",
+        "type": "websocket in",
+        "z": "94d6c2c658ab6ff3",
+        "name": "คำสั่งจากแอดมิน",
+        "server": "c22e0c17f0800620",
+        "client": "",
+        "x": 760,
+        "y": 1040,
+        "wires": [
+            [
+                "853289ca43404378"
+            ]
+        ]
+    },
+    {
+        "id": "853289ca43404378",
+        "type": "function",
+        "z": "94d6c2c658ab6ff3",
+        "name": "Process Admin Command",
+        "func": "// ปรับปรุงการรับข้อมูล: เช็กชนิดข้อมูลก่อนเพื่อป้องกันบั๊ก [object Object]\nvar adminData;\n\nif (typeof msg.payload === \"string\") {\n    // ถ้าข้อมูลมาเป็นข้อความ String ให้ทำการแปลงเป็น Object\n    try {\n        adminData = JSON.parse(msg.payload);\n    } catch(e) {\n        node.error(\"ข้อมูล String ที่ส่งมาไม่ใช่รูปแบบ JSON ที่ถูกต้อง\");\n        return null;\n    }\n} else if (typeof msg.payload === \"object\") {\n    // ถ้าข้อมูลถูกแปลงมาเป็น Object เรียบร้อยแล้ว ให้ดึงไปใช้งานได้ทันทีเลย\n    adminData = msg.payload;\n}\n\n// ==========================================\n// ส่วนลอจิกควบคุมระบบ (คงเดิมตามสเปก)\n// ==========================================\nif (adminData.action === \"register\") {\n    // บันทึกชื่อทีมลงในลิ้นชักความจำของ Flow\n    flow.set(\"current_team\", adminData.team_name);\n    \n    // สร้าง Payload ใหม่เพื่อตัดข้อมูลเซสชันเก่า ป้องกันการล็อกหน้าจอ (ทำ Broadcast)\n    var msgTeam = { payload: adminData.team_name };\n    var msgStatus = { payload: \"READY\" };\n    var msgMqtt = { payload: \"READY\" };\n    \n    return [msgTeam, msgStatus, msgMqtt];\n} \nelse if (adminData.action === \"reset\") {\n    // 1. ล้างค่าชื่อทีมในระบบความจำส่วนกลาง\n    flow.set(\"current_team\", \"\");\n    \n    // 2. สร้างกล่องข้อความว่างเปล่า เพื่อส่งไปสั่งให้หน้าจอใหญ่ล้างชื่อทีมทิ้ง\n    var msgClearTeam = { payload: \"\" };\n    \n    // 3. สร้างกล่องข้อความคำว่า RESET เพื่อสั่งเปลี่ยนสถานะจอ และสั่งบอร์ดสนาม\n    var msgReset = { payload: \"RESET\" };\n    \n    // 4. ส่งข้อมูลออก 3 รูพร้อมกัน (คราวนี้รูที่ 1 จะไม่เป็น null แล้ว จะส่งค่าว่างไปเคลียร์จอ)\n    return [msgClearTeam, msgReset, msgReset];\n}\n\n\n\n\n\n\n\n\n\n// // บรรทัดที่ 1: แปลงข้อความดิบ (String JSON) ที่แอดมินส่งมา ให้กลายเป็น Object ของ JavaScript เพื่อให้ดึง Property ข้างในมาใช้งานได้ง่าย\n// var adminData = JSON.parse(msg.payload);\n\n// // บรรทัดที่ 2: ตรวจสอบเงื่อนไขว่า ถ้าแอดมินส่งคำสั่งประเภทลงทะเบียนทีมวิ่ง (register) เข้ามา\n// if (adminData.action === \"register\") {\n\n//     // บรรทัดที่ 3: ดึงชื่อทีมจากข้อมูลแอดมิน แล้วนำไปฝากไว้ในตัวแปรระบบระดับ Flow (ลิ้นชักความจำภายในแท็บนี้) \n//     // เพื่อให้โหนดกลุ่มอื่นๆ (เช่น ตอนที่รถเข้าเส้นชัยแล้วได้เวลา) สามารถแวะมาดึงชื่อทีมนี้ไปใช้บันทึกร่วมกับตัวเลขเวลาได้\n//     flow.set(\"current_team\", adminData.team_name);\n\n//     // บรรทัดที่ 4-6: **จุดสำคัญมาก** เราทำการสร้าง Object ใหม่เอี่ยม `{ payload: ... }` ขึ้นมาดื้อๆ \n//     // เหตุผลเพราะว่า ข้อมูลที่หลุดมาจากโหนด websocket in จะมีข้อมูลที่ชื่อว่า `msg._session` ติดมาด้วย (เป็น ID ของหน้าจอแอดมิน)\n//     // ถ้าเราใช้ msg ตัวเดิมส่งต่อไปยังหน้าจอแสดงผลหลัก ตัว Node-RED จะเข้าใจผิดว่าต้องส่งกลับไปหาแอดมินคนเดิมเท่านั้น\n//     // การสร้างกล่องข้อมูลใหม่เอี่ยมแบบนี้ จะเป็นการสลัด ID เซสชันทิ้ง ทำให้เกิดการ Broadcast (หว่านกระจาย) ไปยังทุกๆ หน้าจอที่เปิดค้างไว้ครับ\n//     var msgTeam = { payload: adminData.team_name };\n//     var msgStatus = { payload: \"READY\" };\n//     var msgMqtt = { payload: \"READY\" };\n\n//     // บรรทัดที่ 7: คืนค่าผลลัพธ์ออกเป็นอาเรย์กระจายออกไปทั้งหมด 3 รูตามลำดับ \n//     // รูที่ 1 ได้ชื่อทีม, รูที่ 2 ได้สถานะ READY, รูที่ 3 ได้ข้อความส่งหาบอร์ดสนาม\n//     return [msgTeam, msgStatus, msgMqtt];\n// }\n\n// // บรรทัดที่ 8: แต่ถ้าหากแอดมินไม่ได้กดลงทะเบียน แต่กดปุ่มล้างระบบ (reset) เพื่อเคลียร์บอร์ดเตรียมแข่งรอบใหม่\n// else if (adminData.action === \"reset\") {\n\n//     // บรรทัดที่ 9: ล้างค่าตัวแปรชื่อทีมในระบบชั่วคราวให้กลับไปเป็นค่าว่างเปล่า ป้องกันข้อมูลทีมเก่าค้างในระบบ\n//     flow.set(\"current_team\", \"\");\n\n//     // บรรทัดที่ 10: สร้างกล่องข้อมูลสถานะ \"RESET\" เพื่อส่งออกไปสั่งให้หน้าจอใหญ่ล้างจอ และส่งให้ MQTT ไปเคลียร์ค่าบอร์ดเซนเซอร์สนาม\n//     var msgReset = { payload: \"RESET\" };\n\n//     // บรรทัดที่ 11: คืนค่าออกไปเฉพาะช่องที่ 2 และ 3 (ช่องที่ 1 ที่เป็นชื่อทีมส่งเป็น null ไว้เพราะไม่มีข้อมูลส่งไป)\n//     return [null, msgReset, msgReset];\n// }",
+        "outputs": 3,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1050,
+        "y": 1040,
+        "wires": [
+            [
+                "d496de4d617d5693"
+            ],
+            [
+                "55c627a36f6ab0bf"
+            ],
+            [
+                "43cdd5b93f3dc71d"
+            ]
+        ]
+    },
+    {
+        "id": "d496de4d617d5693",
+        "type": "websocket out",
+        "z": "94d6c2c658ab6ff3",
+        "name": "ทีมที่กำลังจะแข่งขัน",
+        "server": "da074d42ebe1a6c6",
+        "client": "",
+        "x": 1330,
+        "y": 980,
+        "wires": []
+    },
+    {
+        "id": "55c627a36f6ab0bf",
+        "type": "websocket out",
+        "z": "94d6c2c658ab6ff3",
+        "name": "สถานะของสนามแข่ง",
+        "server": "7de687b453677f35",
+        "client": "",
+        "x": 1350,
+        "y": 1040,
+        "wires": []
+    },
+    {
+        "id": "43cdd5b93f3dc71d",
+        "type": "mqtt out",
+        "z": "94d6c2c658ab6ff3",
+        "name": "สถานะส่งไปยัง esp32",
+        "topic": "race/control",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "2f3e231e2a4f013d",
+        "x": 1330,
+        "y": 1100,
+        "wires": []
+    },
+    {
+        "id": "7c7b61670c49c624",
+        "type": "mqtt in",
+        "z": "94d6c2c658ab6ff3",
+        "name": "รับค่าเวลาจาก esp32 (แปลว่าวิ่งเสร็จแล้ว)",
+        "topic": "race/time",
+        "qos": "2",
+        "datatype": "utf8",
+        "broker": "2f3e231e2a4f013d",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 870,
+        "y": 1360,
+        "wires": [
+            [
+                "eee8387763911152"
+            ]
+        ]
+    },
+    {
+        "id": "eee8387763911152",
+        "type": "websocket out",
+        "z": "94d6c2c658ab6ff3",
+        "name": "แสดงเวลาทีมปัจจุบันบนเว็ปบอร์ด",
+        "server": "923f4c3f288d22d6",
+        "client": "",
+        "x": 1200,
+        "y": 1360,
+        "wires": []
+    },
+    {
+        "id": "210119797e5a7a37",
+        "type": "mqtt in",
+        "z": "94d6c2c658ab6ff3",
+        "name": "รับค่าเวลาจาก esp32 (แปลว่าวิ่งเสร็จแล้ว)",
+        "topic": "race/time",
+        "qos": "2",
+        "datatype": "utf8",
+        "broker": "2f3e231e2a4f013d",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 870,
+        "y": 1440,
+        "wires": [
+            [
+                "3f592af4ff790394"
+            ]
+        ]
+    },
+    {
+        "id": "3f592af4ff790394",
+        "type": "function",
+        "z": "94d6c2c658ab6ff3",
+        "name": "Prepare MySQL Insert",
+        "func": "// บรรทัดที่ 1: วิ่งไปเปิดลิ้นชักความจำส่วนกลางของแท็บนี้ (Flow Context) เพื่อหยิบชื่อทีมที่แอดมินลงทะเบียนไว้ในส่วนที่ 1\nvar currentTeamName = msg.team_name;\n\n// บรรทัดที่ 2: นำข้อมูลเวลาดิบที่ส่งมาจาก MQTT (เช่น \"12.345\") มาแปลงค่าให้เป็นตัวเลขทศนิยม (Float) เพื่อความเที่ยงตรง\nvar officialTime = parseFloat(msg.payload);\n\n// บรรทัดที่ 3: [ระบบดักบั๊ก] ตรวจสอบว่าถ้าลิ้นชักชื่อทีมว่างเปล่า (แอดมินลืมกดลงทะเบียนทีมแต่ปล่อยรถวิ่ง) ให้หยุดทำงานทันที\nif (!currentTeamName) {\n    node.warn(\"MySQL Insert ถูกระงับ: เนื่องจากไม่มีชื่อทีมในระบบ (current_team ว่างเปล่า)\");\n    return null; // การส่ง null หมายถึงการตัดกระแสไฟ ไม่ให้ส่งข้อมูลไปโหนดถัดไป\n}\n\n// บรรทัดที่ 4: [ระบบดักบั๊ก] ตรวจสอบว่าค่าเวลาที่ได้มาจากบอร์ดสนาม เพี้ยนหรือไม่ได้มาเป็นตัวเลขหรือไม่ ถ้าเพี้ยนให้หยุดทำงาน\nif (isNaN(officialTime)) {\n    node.warn(\"MySQL Insert ถูกระงับ: ค่าเวลาที่ส่งมาไม่ใช่ตัวเลขที่ใช้งานได้ -> \" + msg.payload);\n    return null;\n}\n\n// บรรทัดที่ 5: **จุดสำคัญของ MySQL** เราจะเขียนคำสั่ง SQL โครงสร้างแบบ Parameterized Query ใส่ไว้ใน msg.topic\n// การใช้เครื่องหมายคำถาม (?) เป็นการทำหลุมหลบภัย เพื่อให้โหนด MySQL นำข้อมูลจริงมาเสียบแทนที่ ช่วยป้องกันบั๊กอักขระพิเศษพังระบบ\nmsg.topic = \"INSERT INTO race_results (name, runtime) VALUES (?, ?);\";\n\n// บรรทัดที่ 6: นำข้อมูลจริงแพ็กใส่ Array ไว้ใน msg.payload เรียงลำดับตามเครื่องหมาย ? ด้านบน\n// currentTeamName จะไปแทนที่ ? ตัวแรก และ officialTime จะไปแทนที่ ? ตัวที่สอง\nmsg.payload = [currentTeamName, officialTime];\n\n// บรรทัดที่ 7: ส่งกล่องพัสดุนี้ออกไปหาโหนด MySQL\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1160,
+        "y": 1440,
+        "wires": [
+            [
+                "327364d3c1d9bbc7"
+            ]
+        ]
+    },
+    {
+        "id": "327364d3c1d9bbc7",
+        "type": "mysql",
+        "z": "94d6c2c658ab6ff3",
+        "mydb": "edf1db76562eca95",
+        "name": "database",
+        "x": 1335,
+        "y": 1440,
+        "wires": [
+            [
+                "51c1bd440cc5636c",
+                "588ad9f16cb6e3ac"
+            ]
+        ],
+        "l": false
+    },
+    {
+        "id": "51c1bd440cc5636c",
+        "type": "function",
+        "z": "94d6c2c658ab6ff3",
+        "name": "Set Finish",
+        "func": "\n// 2. แพ็กคำสั่งแจ้งจบการแข่งขันเตรียมส่งออก รูที่ 2 (ล่าง)\nlet msgStatus = { payload: \"FINISHED\" };\n\n// ส่งข้อมูลออกพร้อมกันทั้ง 2 รูแยกจากกัน\nreturn [msgStatus];",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1480,
+        "y": 1440,
+        "wires": [
+            [
+                "e72466075c938ff4"
+            ]
+        ]
+    },
+    {
+        "id": "fb2518d505667947",
+        "type": "websocket out",
+        "z": "94d6c2c658ab6ff3",
+        "name": "ลีดเดอร์บอร์ด",
+        "server": "b310fd0515034f80",
+        "client": "",
+        "x": 1670,
+        "y": 1520,
+        "wires": []
+    },
+    {
+        "id": "e72466075c938ff4",
+        "type": "websocket out",
+        "z": "94d6c2c658ab6ff3",
+        "name": " สถานะของสนามแข่ง",
+        "server": "7de687b453677f35",
+        "client": "",
+        "x": 1710,
+        "y": 1440,
+        "wires": []
+    },
+    {
+        "id": "7c62db664a7a7aa7",
+        "type": "mqtt in",
+        "z": "94d6c2c658ab6ff3",
+        "name": "สถานะจับหุ่นยนต์ตอนเริ่ม",
+        "topic": "race/status",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "2f3e231e2a4f013d",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 820,
+        "y": 1600,
+        "wires": [
+            [
+                "4a6bb90b36560624"
+            ]
+        ]
+    },
+    {
+        "id": "4a6bb90b36560624",
+        "type": "switch",
+        "z": "94d6c2c658ab6ff3",
+        "name": "",
+        "property": "payload",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "START",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 1030,
+        "y": 1600,
+        "wires": [
+            [
+                "0743e22b7bec66ad"
+            ]
+        ]
+    },
+    {
+        "id": "0743e22b7bec66ad",
+        "type": "change",
+        "z": "94d6c2c658ab6ff3",
+        "name": "Set to RACING",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "RACING",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1200,
+        "y": 1600,
+        "wires": [
+            [
+                "22acfa1124e14450"
+            ]
+        ]
+    },
+    {
+        "id": "22acfa1124e14450",
+        "type": "websocket out",
+        "z": "94d6c2c658ab6ff3",
+        "name": "สถานะของสนามแข่ง",
+        "server": "7de687b453677f35",
+        "client": "",
+        "x": 1430,
+        "y": 1600,
+        "wires": []
+    },
+    {
+        "id": "8f5f44074233c8e2",
+        "type": "websocket in",
+        "z": "94d6c2c658ab6ff3",
+        "name": "คำขอข้อมูลลีดเดอร์บอร์ด",
+        "server": "b310fd0515034f80",
+        "client": "",
+        "x": 820,
+        "y": 1520,
+        "wires": [
+            [
+                "588ad9f16cb6e3ac"
+            ]
+        ]
+    },
+    {
+        "id": "588ad9f16cb6e3ac",
+        "type": "function",
+        "z": "94d6c2c658ab6ff3",
+        "name": "Prepare Leaderboard Select",
+        "func": "// หลังจากเซฟลงฐานข้อมูลสำเร็จ ข้อมูลจะวิ่งมาที่นี่ \n// เราสั่ง SELECT กวาดเอา 10 อันดับที่เวลาดีที่สุด (เรียงจากน้อยไปมาก) ทันที\nmsg.topic = \"SELECT name, runtime FROM race_results ORDER BY runtime ASC LIMIT 10;\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1100,
+        "y": 1520,
+        "wires": [
+            [
+                "4ee2655740e71bee"
+            ]
+        ]
+    },
+    {
+        "id": "4ee2655740e71bee",
+        "type": "mysql",
+        "z": "94d6c2c658ab6ff3",
+        "mydb": "edf1db76562eca95",
+        "name": "database",
+        "x": 1275,
+        "y": 1520,
+        "wires": [
+            [
+                "c0e2ad3c06d71017"
+            ]
+        ],
+        "l": false
+    },
+    {
+        "id": "c0e2ad3c06d71017",
+        "type": "function",
+        "z": "94d6c2c658ab6ff3",
+        "name": "Format Leaderboard",
+        "func": "// msg.payload ที่ได้กลับมาจากฐานข้อมูลจะเป็นก้อน Array ของทีมที่เร็วที่สุด\nlet leaderboardArray = msg.payload;\n\n// 1. แพ็กข้อมูลตารางคะแนนเตรียมส่งออก\nlet msgLeaderboard = { payload: leaderboardArray };\n\n\nreturn [msgLeaderboard];",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1440,
+        "y": 1520,
+        "wires": [
+            [
+                "fb2518d505667947"
+            ]
+        ]
+    },
+    {
+        "id": "3a6825d083030c6e",
+        "type": "inject",
+        "z": "94d6c2c658ab6ff3",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "team_name",
+                "v": "test4",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "0.422",
+        "payloadType": "num",
+        "x": 410,
+        "y": 1440,
+        "wires": [
+            [
+                "e286429583e486b5",
+                "7c239d472043172f",
+                "3f592af4ff790394"
+            ]
+        ]
+    },
+    {
+        "id": "61f001510992aa57",
+        "type": "mqtt out",
+        "z": "94d6c2c658ab6ff3",
+        "name": "",
+        "topic": "race/time",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "2f3e231e2a4f013d",
+        "x": 600,
+        "y": 1440,
+        "wires": []
+    },
+    {
+        "id": "e286429583e486b5",
+        "type": "debug",
+        "z": "94d6c2c658ab6ff3",
+        "name": "debug 1",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "team_name",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 620,
+        "y": 1280,
+        "wires": []
+    },
+    {
+        "id": "7c239d472043172f",
+        "type": "debug",
+        "z": "94d6c2c658ab6ff3",
+        "name": "debug 2",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 560,
+        "y": 1200,
+        "wires": []
+    },
+    {
+        "id": "c22e0c17f0800620",
+        "type": "websocket-listener",
+        "path": "/ws/admin-controller",
+        "wholemsg": "false"
+    },
+    {
+        "id": "da074d42ebe1a6c6",
+        "type": "websocket-listener",
+        "path": "/ws/race-in-team",
+        "wholemsg": "false"
+    },
+    {
+        "id": "7de687b453677f35",
+        "type": "websocket-listener",
+        "path": "/ws/race-in-status",
+        "wholemsg": "false"
+    },
+    {
+        "id": "2f3e231e2a4f013d",
+        "type": "mqtt-broker",
+        "name": "Local Pi",
+        "broker": "localhost",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "923f4c3f288d22d6",
+        "type": "websocket-listener",
+        "path": "/ws/in-race-time",
+        "wholemsg": "false"
+    },
+    {
+        "id": "edf1db76562eca95",
+        "type": "MySQLdatabase",
+        "name": "race",
+        "host": "127.0.0.1",
+        "port": "3306",
+        "db": "race_db",
+        "tz": "",
+        "charset": "utf8mb4_general_ci"
+    },
+    {
+        "id": "b310fd0515034f80",
+        "type": "websocket-listener",
+        "path": "/ws/leaderboard",
+        "wholemsg": "false"
+    },
+    {
+        "id": "d388fddfeff5b009",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-node-mysql": "3.0.0"
+        }
+    }
+]
