@@ -297,6 +297,7 @@
         };
 
         // รับสถานะ (คุมเอฟเฟกต์สี และสั่งเปิด/ปิดตัวเลขวิ่งสด)
+        // รับสถานะ (คุมเอฟเฟกต์สี และสั่งเปิด/ปิดตัวเลขวิ่งสด)
         new WebSocket('ws://' + socketHost + '/ws/race-in-status').onmessage = (e) => {
             const statusText = e.data.trim();
             const disp = document.getElementById('status-display');
@@ -307,32 +308,39 @@
             card.className = 'card';
             dot.className = 'status-dot';
             
-            if (statusText === 'RESET') {
-                disp.innerText = "READY";
-                stopLiveTimer(); // หยุดตัวเลขวิ่ง
-                document.getElementById('time-display').innerText = "0.000 s";
+            // 🌟 [แก้ไขจุดบั๊ก]: ถ้าสเตตัสสั่ง RESET หรือกลับมา READY ให้ล้างชื่อทีมหน้าจอหลักทิ้งด้วย
+            if (statusText === 'RESET' || statusText === 'READY') {
+                stopLiveTimer(); // หยุดตัวเลขวิ่งสด
+                document.getElementById('time-display').innerText = "0.000 s"; // รีเซ็ตเวลา
+                document.getElementById('team-display').innerText = "TEAM: ---"; // 👈 ล้างชื่อทีมให้หายไป
+                
+                if (statusText === 'RESET') {
+                    disp.innerText = "READY"; // แสดงผลเป็น READY ตามเดิม
+                } else {
+                    disp.innerText = statusText;
+                }
             } else if (statusText === 'ROBOT_FAULT') {
                 disp.innerText = "ROBOT FAULT";
-                stopLiveTimer(); // หยุดตัวเลขวิ่งเมื่อเกิดเหตุขัดข้อง
+                stopLiveTimer();
             } else {
                 disp.innerText = statusText;
             }
 
-            if (statusText === 'READY') {
-                stopLiveTimer();
-                document.getElementById('time-display').innerText = "0.000 s";
+            // จัดการสีและแอนิเมชันตามสเตตัส
+            if (statusText === 'READY' || statusText === 'RESET') {
+                // ปล่อยให้ลอจิกข้างบนเคลียร์ค่าไปแล้ว
             } else if (statusText === 'START' || statusText === 'RACING') {
                 disp.classList.add('status-racing');
                 card.classList.add('card-racing');
                 dot.classList.add('dot-racing');
                 
-                startLiveTimer(); // 🚀 รถออกตัวปุ๊บ! สั่งตัวเลขเวลาวิ่งบนหน้าจอทันที
+                startLiveTimer(); // รถออกตัว -> สั่งตัวเลขเวลาวิ่งสด
             } else if (statusText === 'FINISHED') {
                 disp.classList.add('status-finish');
                 card.classList.add('card-finish');
                 dot.classList.add('dot-finish');
                 
-                stopLiveTimer(); // 🏁 รถเข้าเส้นชัย! หยุดลูปวิ่งสดเพื่อเตรียมรับค่าจริง
+                stopLiveTimer(); // รถเข้าเส้นชัย -> หยุดเวลาสดรอรับเวลาทางการ
             } else if (statusText === 'ROBOT_FAULT') {
                 disp.classList.add('status-fault');
                 card.classList.add('card-fault');
