@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RACE CONTROL CENTER (ADMIN)</title>
+    <title>RACE CONTROL CENTER (ADMIN PANEL)</title>
     
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
     
     <style>
         body {
-            background-color: #f8fafc;
+            background-color: #f1f5f9;
             color: #0f172a;
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             touch-action: manipulation;
         }
         
@@ -23,10 +23,10 @@
         .card-custom {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 14px;
+            border-radius: 16px;
             padding: 25px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
         }
 
         .status-badge {
@@ -38,33 +38,15 @@
             color: #334155;
             text-transform: uppercase;
         }
-        .status-active {
-            background-color: #fef08a;
-            color: #854d0e;
-        }
-        .status-racing {
-            background-color: #bbf7d0;
-            color: #166534;
-            animation: pulseBg 1.2s infinite ease-in-out;
-        }
+        .status-ready { background-color: #bbf7d0; color: #166534; }
+        .status-racing { background-color: #fef08a; color: #854d0e; animation: pulseBg 1.2s infinite ease-in-out; }
 
-        .run-box {
-            background: #f1f5f9;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-        }
-        .run-title {
-            font-size: 0.9rem;
-            font-weight: 600;
+        .table-admin th {
+            background-color: #f8fafc;
             color: #64748b;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
             text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-        .run-time {
-            font-size: 1.8rem;
-            color: #0f172a;
         }
 
         @keyframes pulseBg {
@@ -76,12 +58,12 @@
 </head>
 <body class="py-4">
 
-    <div class="container-fluid" style="max-width: 1200px;">
+    <div class="container-fluid" style="max-width: 1400px;">
         
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h1 class="h3 mb-1 fw-bold">RACE CONTROL PANEL</h1>
-                <p class="text-muted small mb-0">ระบบจัดการและควบคุมการจับเวลาการแข่งขัน (ฝั่งกรรมการ)</p>
+                <p class="text-muted small mb-0">หน้าต่างควบคุมของกรรมการ: จัดการชื่อทีม, สั่งรันสนาม และตรวจสอบสถิติทั่ง 3 รอบ</p>
             </div>
             <div>
                 <span id="system-status" class="status-badge">DISCONNECTED</span>
@@ -89,75 +71,66 @@
         </div>
 
         <div class="row">
-            <div class="col-lg-7">
+            <div class="col-lg-5">
                 
                 <div class="card-custom">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <span class="text-muted small text-uppercase fw-bold tracking-wider">Current Race</span>
+                    <span class="text-muted small text-uppercase d-block mb-2 fw-bold text-secondary">จัดการคิวรถแข่ง</span>
+                    <form id="team-form" onsubmit="return false;">
+                        <div class="input-group">
+                            <input type="text" id="input-team-name" class="form-content form-control form-control-lg fw-bold" placeholder="กรอกชื่อทีมที่นี่..." required>
+                            <button type="submit" id="btn-submit-team" class="btn btn-primary btn-lg fw-bold">ส่งชื่อเข้าสนาม</button>
+                        </div>
+                        <div class="form-text text-muted mt-2">ใส่ชื่อทีมซ้ำกันได้เพื่อจับเวลารอบที่ 2 หรือ 3 ของทีมนั้นๆ</div>
+                    </form>
+                </div>
+
+                <div class="card-custom">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted small text-uppercase fw-bold text-secondary">สถานะแทร็กปัจจุบัน</span>
                         <span id="race-state-badge" class="status-badge">IDLE</span>
                     </div>
-                    <h2 id="mon-team" class="display-6 fw-bold mb-3 text-primary">TEAM: ---</h2>
+                    <h2 id="mon-team" class="h3 fw-bold mb-3 text-truncate text-primary">TEAM: ---</h2>
                     
-                    <div class="bg-dark text-white p-4 rounded-3 mb-4 text-center">
-                        <span class="text-muted small text-uppercase d-block mb-1">LIVE TIME COUNTER</span>
-                        <div id="mon-time" class="display-3 font-num fw-bold text-warning">0.000 s</div>
-                    </div>
-
-                    <div class="row g-3 mb-2">
-                        <div class="col-4">
-                            <div class="run-box" id="box-run1">
-                                <div class="run-title">RUN 1</div>
-                                <div id="time-run1" class="run-time font-num fw-bold">-</div>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="run-box" id="box-run2">
-                                <div class="run-title">RUN 2</div>
-                                <div id="time-run2" class="run-time font-num fw-bold">-</div>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="run-box" id="box-run3">
-                                <div class="run-title">RUN 3</div>
-                                <div id="time-run3" class="run-time font-num fw-bold">-</div>
-                            </div>
-                        </div>
+                    <div class="bg-dark text-white p-4 rounded-3 text-center mb-0">
+                        <span class="text-muted small text-uppercase d-block mb-1 tracking-wider">LIVE COUNTER</span>
+                        <div id="mon-time" class="display-4 font-num fw-bold text-warning">0.000 s</div>
                     </div>
                 </div>
 
                 <div class="card-custom">
-                    <span class="text-muted small text-uppercase d-block mb-3 fw-bold">Race Commands</span>
+                    <span class="text-muted small text-uppercase d-block mb-3 fw-bold text-secondary">คำสั่งสนาม</span>
                     <div class="row g-3">
                         <div class="col-6">
                             <button id="btn-ready" class="btn btn-success btn-lg w-100 py-3 fw-bold shadow-sm">⚡ SET READY</button>
                         </div>
                         <div class="col-6">
-                            <button id="btn-reset" class="btn btn-danger btn-lg w-100 py-3 fw-bold shadow-sm">🛑 RESET SYSTEM</button>
+                            <button id="btn-reset" class="btn btn-danger btn-lg w-100 py-3 fw-bold shadow-sm">🛑 RESET TRACK</button>
                         </div>
                     </div>
                 </div>
 
             </div>
 
-            <div class="col-lg-5">
+            <div class="col-lg-7">
                 <div class="card-custom">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="text-muted small text-uppercase fw-bold">Live Leaderboard</span>
-                        <span class="badge bg-secondary rounded-pill font-num" id="team-count">0 Teams</span>
+                        <span class="text-muted small text-uppercase fw-bold text-secondary">ตารางสรุปผลการแข่งขันแยกตามรอบ (3 RUNS LOG)</span>
+                        <span class="badge bg-dark rounded-pill font-num" id="team-count">0 Teams</span>
                     </div>
                     
-                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light sticky-top">
-                                <tr>
-                                    <th style="width: 15%;" class="text-center">RANK</th>
-                                    <th style="width: 55%;">TEAM</th>
-                                    <th style="width: 30%;" class="text-end">BEST TIME</th>
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover align-middle mb-0 table-admin">
+                            <thead class="sticky-top shadow-sm">
+                                <tr class="text-center">
+                                    <th style="width: 40%;" class="text-start">ชื่อทีม (TEAM NAME)</th>
+                                    <th style="width: 20%;">RUN 1</th>
+                                    <th style="width: 20%;">RUN 2</th>
+                                    <th style="width: 20%;">RUN 3</th>
                                 </tr>
                             </thead>
-                            <tbody id="leaderboard-body">
+                            <tbody id="admin-table-body">
                                 <tr>
-                                    <td colspan="3" class="text-center text-muted py-4">WAITING FOR DATA...</td>
+                                    <td colspan="4" class="text-center text-muted py-5">ยังไม่มีข้อมูลการส่งทีมเข้าแข่งขัน</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -170,91 +143,68 @@
 
     <script>
         const socketHost = `${location.hostname}:1880`;
-        let runCount = 0; // ตัวแปรนับรอบวิ่งในคิวปัจจุบันของทีมนั้นๆ
+        let currentActiveTeam = ""; // เก็บชื่อทีมที่กำลังวิ่งปัจจุบัน
 
-        // บล็อกปุ่มกดส่งคำสั่งควบคุมไปยัง Node-RED ท่อ MQTT
+        // ฟังก์ชันเมื่อกรรมการกดปุ่ม "ส่งชื่อเข้าสนาม"
+        document.getElementById('team-form').addEventListener('submit', () => {
+            const teamName = document.getElementById('input-team-name').value.trim();
+            if (teamName) {
+                currentActiveTeam = teamName;
+                // ส่งชื่อทีมไปให้ Node-RED บันทึกหรือกระจายค่าผ่าน HTTP GET
+                fetch(`http://${location.hostname}:1880/set-team?name=${encodeURIComponent(teamName)}`)
+                    .then(() => {
+                        document.getElementById('mon-team').innerText = "TEAM: " + teamName;
+                        document.getElementById('input-team-name').value = ""; // ล้างช่องกรอกเพื่อให้พร้อมกรอกชื่อถัดไป
+                    });
+            }
+        });
+
+        // ปุ่มคำสั่งยิงไปที่ Node-RED
         document.getElementById('btn-ready').addEventListener('click', () => {
-            // ส่งสัญญาณบอกหลังบ้านว่าพร้อมวิ่งรอบถัดไป
             fetch(`http://${location.hostname}:1880/race-control?cmd=READY`);
         });
 
         document.getElementById('btn-reset').addEventListener('click', () => {
-            // ล้างบอร์ดล้างกระดานปัจจุบันกลับสู่ศูนย์
             fetch(`http://${location.hostname}:1880/race-control?cmd=RESET`);
-            resetAdminDisplay();
+            document.getElementById('mon-time').innerText = "0.000 s";
         });
 
-        // ฟังก์ชันล้างค่าหน้าจอฝั่งแอดมินให้กลับสู่หน้าว่าง
-        function resetAdminDisplay() {
-            runCount = 0;
-            document.getElementById('mon-team').innerText = "TEAM: ---";
-            document.getElementById('mon-time').innerText = "0.000 s";
-            document.getElementById('time-run1').innerText = "-";
-            document.getElementById('time-run2').innerText = "-";
-            document.getElementById('time-run3').innerText = "-";
-            document.getElementById('race-state-badge').innerText = "IDLE";
-            document.getElementById('race-state-badge').className = "status-badge";
-        }
-
-        // 1. ดักฟังก์ชันรับชื่อทีมเข้าคิวแข่งขัน
-        const wsTeam = new WebSocket(`ws://${socketHost}/ws/race-in-team`);
-        wsTeam.onmessage = (e) => {
-            const teamName = e.data.trim();
-            if (!teamName || teamName === "" || teamName === "null" || teamName === "RESET") {
-                resetAdminDisplay();
-            } else {
-                document.getElementById('mon-team').innerText = "TEAM: " + teamName;
-            }
-        };
-
-        // 2. ดักฟังก์ชันรับสถานะตัวสวิตช์สนามจับเวลา
+        // 1. ดักฟังสถานะจากบอร์ดสนาม
         const wsStatus = new WebSocket(`ws://${socketHost}/ws/race-in-status`);
         wsStatus.onmessage = (e) => {
             const state = e.data.trim();
             const badge = document.getElementById('race-state-badge');
             
-            if (state === "RESET") {
-                resetAdminDisplay();
-                return;
-            }
-
             badge.innerText = state;
             badge.className = "status-badge";
 
             if (state === "READY") {
-                badge.classList.add("status-active");
+                badge.classList.add("status-ready");
             } else if (state === "START" || state === "RACING") {
                 badge.classList.add("status-racing");
+            } else if (state === "RESET") {
+                document.getElementById('mon-team').innerText = "TEAM: ---";
+                currentActiveTeam = "";
             }
         };
 
-        // 3. ดักฟังก์ชันรับค่าสถิติตัวเลขเวลาจับสัญญาน (รับค่าเวลาแบบทศนิยมทีละรอบ)
+        // 2. ดักฟังเวลาวิ่งปัจจุบันสดๆ ของรอบนั้นๆ
         const wsTime = new WebSocket(`ws://${socketHost}/ws/in-race-time`);
         wsTime.onmessage = (e) => {
             const timeValue = parseFloat(e.data);
             if (!isNaN(timeValue)) {
-                const formattedTime = timeValue.toFixed(3) + " s";
-                document.getElementById('mon-time').innerText = formattedTime;
-                
-                // สรุปจัดเก็บลงพอร์ตแสดงผลทีละ 3 รอบตามรอบการวิ่งจริง
-                runCount++;
-                if (runCount === 1) {
-                    document.getElementById('time-run1').innerText = formattedTime;
-                } else if (runCount === 2) {
-                    document.getElementById('time-run2').innerText = formattedTime;
-                } else if (runCount === 3) {
-                    document.getElementById('time-run3').innerText = formattedTime;
-                }
+                document.getElementById('mon-time').innerText = timeValue.toFixed(3) + " s";
             }
         };
 
-        // 4. ดักฟังก์ชันรับข้อมูลลีดเดอร์บอร์ดภาพรวมมาโชว์บนแผงแอดมิน
-        const lbSocket = new WebSocket(`ws://${socketHost}/ws/leaderboard`);
+        // 3. 📊 ส่วนสำคัญที่สุด: ดักฟังข้อมูลประวัติเวลาแยกทั้ง 3 รอบจากฐานข้อมูลมาเรนเดอร์ลงตารางแอดมิน
+        // (ทาง Node-RED จะต้องเขียนฟังก์ชัน GROUP_CONCAT หรือแยก Array ดึงสถิติรายทีมส่งมาให้ช่องนี้)
+        const lbSocket = new WebSocket(`ws://${socketHost}/ws/admin-runs-log`);
         
         lbSocket.onopen = () => {
             document.getElementById('system-status').innerText = "CONNECTED";
             document.getElementById('system-status').classList.add("bg-success", "text-white");
-            lbSocket.send("request_data"); // ขอโหลดข้อมูลชุดแรกทันที
+            lbSocket.send("request_admin_data"); // ทักทายเพื่อขอข้อมูลชุดแรกทันที
         };
 
         lbSocket.onclose = () => {
@@ -263,25 +213,32 @@
         };
 
         lbSocket.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            const body = document.getElementById('leaderboard-body');
-            document.getElementById('team-count').innerText = `${data.length} Teams`;
+            const teamsData = JSON.parse(e.data);
+            const body = document.getElementById('admin-table-body');
+            document.getElementById('team-count').innerText = `${teamsData.length} Teams`;
             
             body.innerHTML = '';
             
-            if (data.length === 0) {
-                body.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">WAITING FOR DATA...</td></tr>';
+            if (teamsData.length === 0) {
+                body.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-5">ยังไม่มีข้อมูลการส่งทีมเข้าแข่งขัน</td></tr>';
                 return;
             }
 
-            data.forEach((item, i) => {
-                if (!item.name || item.runtime === undefined) return;
-                const bestTime = parseFloat(item.runtime).toFixed(3);
+            // เรนเดอร์ชื่อทีม พร้อมช่อง Run 1, Run 2, Run 3 แยกขาดจากกัน
+            teamsData.forEach((item) => {
+                // หากรอบไหนไม่มีค่าเวลา (ยังไม่รัน) ให้ดึงค่าเริ่มต้นเป็น "-" 
+                const r1 = item.run1 ? parseFloat(item.run1).toFixed(3) + " s" : "-";
+                const r2 = item.run2 ? parseFloat(item.run2).toFixed(3) + " s" : "-";
+                const r3 = item.run3 ? parseFloat(item.run3).toFixed(3) + " s" : "-";
                 
-                body.innerHTML += `<tr>
-                    <td class="text-center fw-bold text-muted font-num">${i + 1}</td>
-                    <td class="fw-semibold text-truncate" style="max-width: 180px;">${item.name}</td>
-                    <td class="text-end text-primary font-num fw-bold">${bestTime} s</td>
+                // เช็กไฮไลต์แถวของทีมปัจจุบันที่แอดมินกำลังคีย์/กำลังวิ่งอยู่
+                const isCurrent = (item.name === currentActiveTeam) ? "table-primary fw-bold" : "";
+
+                body.innerHTML += `<tr class="${isCurrent}">
+                    <td class="fw-semibold text-primary">${item.name}</td>
+                    <td class="text-center font-num">${r1}</td>
+                    <td class="text-center font-num">${r2}</td>
+                    <td class="text-center font-num">${r3}</td>
                 </tr>`;
             });
         };
