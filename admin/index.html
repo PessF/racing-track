@@ -256,8 +256,12 @@
             adminLbSocket.send("request_data");
         };
 
-        adminLbSocket.onmessage = (e) => {
+adminLbSocket.onmessage = (e) => {
             const data = JSON.parse(e.data);
+            
+            // 🔍 บรรทัดนี้สำคัญมาก: สั่งพ่นข้อมูลดิบออกที่หน้าต่างตรวจสอบของเบราว์เซอร์
+            console.log("--- ข้อมูลสถิติจากบอร์ดสนาม ---");
+            console.log(data); 
             
             if (Array.isArray(data)) {
                 const body = document.getElementById('admin-table-body');
@@ -269,14 +273,30 @@
                     return;
                 }
 
+                // 🌟 [ขั้นตอนที่ 1]: ค้นหาเวลาที่ดีที่สุดของทั้งสนามเพื่อทำไฮไลท์
+                let globalBestTime = 999;
                 data.forEach((item) => {
-                    const bTime = item.best_time ? parseFloat(item.best_time) : 999;
-                    
+                    // ⚠️ หากชื่อคีย์ใน console.log ไม่ใช่ run1, run2, run3 ให้เปลี่ยนตรงนี้ให้ตรงกันนะครับ
+                    const runs = [item.run1, item.run2, item.run3];
+                    runs.forEach((run) => {
+                        if (run) {
+                            const runTime = parseFloat(run);
+                            if (!isNaN(runTime) && runTime < globalBestTime && runTime < 180) {
+                                globalBestTime = runTime;
+                            }
+                        }
+                    });
+                });
+
+                // 🌟 [ขั้นตอนที่ 2]: แสดงผลลงตาราง
+                data.forEach((item) => {
                     const getHighlightClass = (runTimeVal) => {
                         if (!runTimeVal) return "";
-                        return (parseFloat(runTimeVal) === bTime && bTime < 180) ? "best-run-highlight" : "";
+                        const currentRunTime = parseFloat(runTimeVal);
+                        return (currentRunTime === globalBestTime && globalBestTime < 180) ? "best-run-highlight" : "";
                     };
 
+                    // ⚠️ ตรวจสอบตัวแปร item.run1, item.run2, item.run3 ให้สัมพันธ์กับหน้าต่าง Console
                     const r1 = item.run1 ? parseFloat(item.run1).toFixed(3) + " s" : "-";
                     const r2 = item.run2 ? parseFloat(item.run2).toFixed(3) + " s" : "-";
                     const r3 = item.run3 ? parseFloat(item.run3).toFixed(3) + " s" : "-";
