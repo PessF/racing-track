@@ -298,6 +298,7 @@
 
         // รับสถานะ (คุมเอฟเฟกต์สี และสั่งเปิด/ปิดตัวเลขวิ่งสด)
         // รับสถานะ (คุมเอฟเฟกต์สี และสั่งเปิด/ปิดตัวเลขวิ่งสด)
+        // รับสถานะ (คุมเอฟเฟกต์สี และสั่งเปิด/ปิดตัวเลขวิ่งสด)
         new WebSocket('ws://' + socketHost + '/ws/race-in-status').onmessage = (e) => {
             const statusText = e.data.trim();
             const disp = document.getElementById('status-display');
@@ -308,17 +309,16 @@
             card.className = 'card';
             dot.className = 'status-dot';
             
-            // 🌟 [แก้ไขจุดบั๊ก]: ถ้าสเตตัสสั่ง RESET หรือกลับมา READY ให้ล้างชื่อทีมหน้าจอหลักทิ้งด้วย
-            if (statusText === 'RESET' || statusText === 'READY') {
-                stopLiveTimer(); // หยุดตัวเลขวิ่งสด
-                document.getElementById('time-display').innerText = "0.000 s"; // รีเซ็ตเวลา
-                document.getElementById('team-display').innerText = "TEAM: ---"; // 👈 ล้างชื่อทีมให้หายไป
-                
-                if (statusText === 'RESET') {
-                    disp.innerText = "READY"; // แสดงผลเป็น READY ตามเดิม
-                } else {
-                    disp.innerText = statusText;
-                }
+            // 🌟 [แก้ไขจุดบั๊กชื่อหาย]: ล้างชื่อทีมเฉพาะตอนกด RESET เท่านั้น! ตอน READY จะไม่ล้างชื่อทีม
+            if (statusText === 'RESET') {
+                stopLiveTimer();
+                document.getElementById('time-display').innerText = "0.000 s";
+                document.getElementById('team-display').innerText = "TEAM: ---"; // ล้างชื่อทีมเฉพาะตอน RESET
+                disp.innerText = "READY";
+            } else if (statusText === 'READY') {
+                stopLiveTimer();
+                document.getElementById('time-display').innerText = "0.000 s"; // เคลียร์เวลาเป็นศูนย์เพื่อรอปล่อยตัว
+                disp.innerText = statusText;
             } else if (statusText === 'ROBOT_FAULT') {
                 disp.innerText = "ROBOT FAULT";
                 stopLiveTimer();
@@ -328,7 +328,7 @@
 
             // จัดการสีและแอนิเมชันตามสเตตัส
             if (statusText === 'READY' || statusText === 'RESET') {
-                // ปล่อยให้ลอจิกข้างบนเคลียร์ค่าไปแล้ว
+                // เคลียร์สถานะผ่านลอจิกด้านบนแล้ว
             } else if (statusText === 'START' || statusText === 'RACING') {
                 disp.classList.add('status-racing');
                 card.classList.add('card-racing');
