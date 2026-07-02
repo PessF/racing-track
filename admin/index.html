@@ -41,8 +41,8 @@
 
         .status-ready { background-color: #bbf7d0; color: #166534; }
         .status-racing { background-color: #fef08a; color: #854d0e; animation: pulseBg 1.2s infinite ease-in-out; }
+        .status-fault { background-color: #fee2e2; color: #991b1b; }
 
-        /* 🟢 สไตล์สำหรับไฮไลต์รอบเวลาที่ดีที่สุด (Best Time) ของแต่ละทีม */
         .best-run-highlight {
             background-color: #d1fae5 !important;
             color: #065f46 !important;            
@@ -116,13 +116,13 @@
                     <div class="d-flex flex-column gap-2">
                         <div class="row g-2">
                             <div class="col-6">
-                                <button id="btn-ready" class="btn btn-success btn-lg w-100 py-3 fw-bold shadow-sm" disabled>⚡ READY</button>
+                                <button id="btn-ready" class="btn btn-success btn-lg w-100 py-3 fw-bold shadow-sm" disabled>READY</button>
                             </div>
                             <div class="col-6">
-                                <button id="btn-reset" class="btn btn-secondary btn-lg w-100 py-3 fw-bold shadow-sm" disabled>🛑 RESET</button>
+                                <button id="btn-reset" class="btn btn-secondary btn-lg w-100 py-3 fw-bold shadow-sm" disabled>RESET</button>
                             </div>
                         </div>
-                        <button id="btn-fault" class="btn btn-danger btn-lg w-100 py-3 fw-bold shadow-sm mt-1" disabled>⚠️ หุ่นขัดข้อง (FAULT 3 MIN)</button>
+                        <button id="btn-fault" class="btn btn-danger btn-lg w-100 py-3 fw-bold shadow-sm mt-1" disabled>ROBOT FAULT (3 MINUTES)</button>
                     </div>
                 </div>
 
@@ -162,10 +162,8 @@
         const socketHost = window.location.hostname + ':1880';
         let currentActiveTeam = "";
 
-        // 🔗 1. สร้างท่อเปิด WebSocket หลักของฝั่งแอดมิน สเปกเส้นทาง /ws/admin-controller
         const adminSocket = new WebSocket(`ws://${socketHost}/ws/admin-controller`);
         
-        // ฟังก์ชันช่วยเปิด-ปิดปุ่มกดตามสถานะการเชื่อมต่อเครือข่าย ป้องกันกรรมการกดค้างตอนเน็ตหลุด
         const toggleControlButtons = (enabled) => {
             document.getElementById('btn-ready').disabled = !enabled;
             document.getElementById('btn-reset').disabled = !enabled;
@@ -186,13 +184,11 @@
             toggleControlButtons(false);
         };
 
-        // 🟢 [MANAGE LOGIC VIA WEBSOCKET] ปรับเปลี่ยนรูปแบบมาส่งผ่านสายท่อ JSON Object ชุดเดียว
         document.getElementById('team-form').addEventListener('submit', () => {
             const teamName = document.getElementById('input-team-name').value.trim();
             if (teamName && adminSocket.readyState === WebSocket.OPEN) {
                 currentActiveTeam = teamName;
                 
-                // ยื่นข้อความลงทะเบียนทีมเข้า WebSocket
                 adminSocket.send(JSON.stringify({
                     action: "register",
                     team_name: teamName
@@ -219,21 +215,18 @@
         });
 
         document.getElementById('btn-fault').addEventListener('click', () => {
-            if (confirm("ยืนยันการบันทึก 'หุ่นขัดข้อง' (เวลา 3 นาที) สำหรับรอบนี้ใช่ไหม?")) {
+            if (confirm("ยืนยันการบันทึกสถานะหุ่นขัดข้อง (เวลา 3 นาที) สำหรับรอบนี้ใช่ไหม?")) {
                 if (adminSocket.readyState === WebSocket.OPEN) {
-                    // ยิงคำสั่งพังตรงเข้าท่อหลัก เพื่อวิ่งไปรันคำสั่ง Insert SQL 180s ที่หลังบ้านเดฟได้เลย!
                     adminSocket.send(JSON.stringify({ action: "fault" }));
                 }
             }
         });
 
 
-        // 📊 [LEADERBOARD LOGIC] เชื่อมต่อสายสรุปสถิติ 3 รอบ (Real-time)
         const adminLbSocket = new WebSocket(`ws://${socketHost}/ws/admin-runs-log`);
         
         adminLbSocket.onopen = () => {
             console.log("Admin Leaderboard WebSocket Connected.");
-            // ส่งสัญญาณสะกิดไปขอตารางข้อมูลชุดแรกมารอสแตนด์บายบนจอ
             adminLbSocket.send("request_data");
         };
 
@@ -279,18 +272,23 @@
         };
 
 
-        // 📡 [TRACK TELEMETRY] ฟังก์ชันคอยดักฟังสถานะสนาม และเวลาวิ่งสดจากบอร์ดสนาม
         const wsStatus = new WebSocket(`ws://${socketHost}/ws/race-in-status`);
         wsStatus.onmessage = (e) => {
             const state = e.data.trim();
             const badge = document.getElementById('race-state-badge');
-            badge.innerText = state;
+            
             badge.className = "status-badge";
             
-            if (state === "READY") {
-                badge.classList.add("status-ready");
-            } else if (state === "START" || state === "RACING") {
-                badge.classList.add("status-racing");
+            if (state === "ROBOT_FAULT") {
+                badge.innerText = "ROBOT FAULT";
+                badge.classList.add("status-fault");
+            } else {
+                badge.innerText = state;
+                if (state === "READY") {
+                    badge.classList.add("status-ready");
+                } else if (state === "START" || state === "RACING") {
+                    badge.classList.add("status-racing");
+                }
             }
         };
 

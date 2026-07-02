@@ -209,6 +209,22 @@
             box-shadow: inset 0 0 50px rgba(255,204,0,0.05) !important;
         }
 
+        /* 🛑 เอฟเฟกต์แสดงสถานะหุ่นยนต์ขัดข้อง (สีแดงนีออนดุดัน) */
+        .status-fault {
+            color: #ff3b30 !important;
+            text-shadow: 0 0 25px rgba(255,59,48,0.5) !important;
+        }
+        .dot-fault {
+            background-color: #ff3b30 !important;
+            box-shadow: 0 0 20px #ff3b30, 0 0 40px #ff3b30;
+            animation: pulseDot 0.6s infinite ease-in-out; /* กะพริบถี่กว่าปกติเพื่อแจ้งเตือน */
+        }
+        .card-fault {
+            border-top-color: #ff3b30 !important;
+            background: #1c0b0b !important;
+            box-shadow: inset 0 0 50px rgba(255,59,48,0.1) !important;
+        }
+
         @keyframes pulseDot { 
             0% { opacity: 1; transform: scale(1); } 
             50% { opacity: 0.2; transform: scale(0.92); } 
@@ -261,7 +277,7 @@
     <script>
         const socketHost = `${location.hostname}:1880`;
         
-        // รับชื่อทีม (ปรับปรุง: รองรับการตรวจจับค่าว่างและคำสั่งเคลียร์บอร์ดจากการ Reset)
+        // รับชื่อทีม
         new WebSocket('ws://' + socketHost + '/ws/race-in-team').onmessage = (e) => {
             const teamName = e.data.trim();
             if (!teamName || teamName === "" || teamName === "null" || teamName === "RESET") {
@@ -271,7 +287,7 @@
             }
         };
 
-        // รับสถานะ
+        // รับสถานะ (เพิ่มเงื่อนไขรองรับ ROBOT_FAULT แจ้งเตือนสีแดงนีออน)
         new WebSocket('ws://' + socketHost + '/ws/race-in-status').onmessage = (e) => {
             const statusText = e.data.trim();
             const disp = document.getElementById('status-display');
@@ -285,6 +301,8 @@
             if (statusText === 'RESET') {
                 disp.innerText = "READY";
                 document.getElementById('time-display').innerText = "0.000 s";
+            } else if (statusText === 'ROBOT_FAULT') {
+                disp.innerText = "ROBOT FAULT"; // แสดงข้อความบนทีวีให้ชัดเจน
             } else {
                 disp.innerText = statusText;
             }
@@ -299,10 +317,15 @@
                 disp.classList.add('status-finish');
                 card.classList.add('card-finish');
                 dot.classList.add('dot-finish');
+            } else if (statusText === 'ROBOT_FAULT') {
+                // แจกคลาส CSS สีแดงนีออนกะพริบเตือนหุ่นขัดข้อง
+                disp.classList.add('status-fault');
+                card.classList.add('card-fault');
+                dot.classList.add('dot-fault');
             }
         };
 
-        // รับเวลาวิ่งจบ (แสดงเป็นทศนิยม 3 ตำแหน่งเสมอ)
+        // รับเวลาวิ่งจบ (พอบอร์ด Pi ยิงเวลา 180.000 กลับมา ช่องนี้จะแสดงผลตัวเลขเต็มเวลาทันที)
         new WebSocket('ws://' + socketHost + '/ws/in-race-time').onmessage = (e) => {
             const timeValue = parseFloat(e.data);
             if (!isNaN(timeValue)) {
@@ -310,19 +333,17 @@
             }
         };
 
-        // เชื่อมต่อบอร์ดผู้นำ
+        // เชื่อมต่อบอร์ดผู้นำ (Live Leaderboard)
         const lbSocket = new WebSocket('ws://' + socketHost + '/ws/leaderboard');
 
         lbSocket.onopen = () => {
             lbSocket.send("request_data");
         };
 
-        // ระบบคำนวณตำแหน่งแถวสลับอัตโนมัติ (FLIP Technique)
         lbSocket.onmessage = (e) => {
             const data = JSON.parse(e.data);
             const body = document.getElementById('leaderboard-body');
             
-            // 1. [FIRST] บันทึกตำแหน่งความสูงพิกเซลเดิม
             const oldPositions = {};
             body.querySelectorAll('.data-row').forEach(row => {
                 const teamName = row.getAttribute('data-team');
@@ -331,7 +352,6 @@
                 }
             });
 
-            // 2. เรนเดอร์ข้อมูลเซ็ตใหม่ลงตาราง
             let newRowsHTML = '';
             data.forEach((item, i) => {
                 if (!item.name || item.runtime === undefined) return; 
@@ -352,7 +372,6 @@
 
             body.innerHTML = newRowsHTML;
 
-            // 3. [LAST & INVERT] หาค่าระยะต่าง
             const updatedRows = body.querySelectorAll('.data-row');
             updatedRows.forEach(row => {
                 const teamName = row.getAttribute('data-team');
@@ -371,7 +390,6 @@
                 }
             });
 
-            // 4. [PLAY] สั่งแอนิเมชันเริ่มทำงาน
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     updatedRows.forEach(row => {
