@@ -193,7 +193,6 @@
         const adminSocket = new WebSocket(`ws://${socketHost}/ws/admin-controller`);
         
         const toggleControlButtons = (enabled) => {
-            document.getElementById('btn-ready').disabled = !enabled;
             document.getElementById('btn-reset').disabled = !enabled;
             document.getElementById('btn-fault').disabled = !enabled;
             document.getElementById('btn-void').disabled = !enabled;
@@ -228,11 +227,6 @@
             }
         });
 
-        document.getElementById('btn-ready').addEventListener('click', () => {
-            if (adminSocket.readyState === WebSocket.OPEN) {
-                adminSocket.send(JSON.stringify({ action: "register", team_name: currentActiveTeam }));
-            }
-        });
 
         document.getElementById('btn-reset').addEventListener('click', () => {
             if (adminSocket.readyState === WebSocket.OPEN) {
