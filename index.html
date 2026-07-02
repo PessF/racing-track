@@ -209,22 +209,6 @@
             box-shadow: inset 0 0 50px rgba(255,204,0,0.05) !important;
         }
 
-        /* 🛑 เอฟเฟกต์แสดงสถานะหุ่นยนต์ขัดข้อง (สีแดงนีออนดุดัน) */
-        .status-fault {
-            color: #ff3b30 !important;
-            text-shadow: 0 0 25px rgba(255,59,48,0.5) !important;
-        }
-        .dot-fault {
-            background-color: #ff3b30 !important;
-            box-shadow: 0 0 20px #ff3b30, 0 0 40px #ff3b30;
-            animation: pulseDot 0.6s infinite ease-in-out; /* กะพริบถี่กว่าปกติเพื่อแจ้งเตือน */
-        }
-        .card-fault {
-            border-top-color: #ff3b30 !important;
-            background: #1c0b0b !important;
-            box-shadow: inset 0 0 50px rgba(255,59,48,0.1) !important;
-        }
-
         @keyframes pulseDot { 
             0% { opacity: 1; transform: scale(1); } 
             50% { opacity: 0.2; transform: scale(0.92); } 
@@ -274,9 +258,34 @@
         </div>
     </div>
 
-    <script>
+<script>
         const socketHost = `${location.hostname}:1880`;
         
+        // --- [เพิ่มระบบ Running Timer ฝั่ง Client] ---
+        let liveTimerInterval = null;
+        let startTimestamp = 0;
+
+        function startLiveTimer() {
+            if (liveTimerInterval) return; // ถ้าวิ่งอยู่แล้วไม่ต้องสร้างซ้ำ
+            startTimestamp = performance.now(); // บันทึกจุดเวลาเริ่มต้นที่สถานะเปลี่ยน
+            
+            function updateTimer() {
+                if (!liveTimerInterval) return;
+                const elapsedSeconds = (performance.now() - startTimestamp) / 1000;
+                document.getElementById('time-display').innerText = elapsedSeconds.toFixed(3) + " s";
+                liveTimerInterval = requestAnimationFrame(updateTimer);
+            }
+            liveTimerInterval = requestAnimationFrame(updateTimer);
+        }
+
+        function stopLiveTimer() {
+            if (liveTimerInterval) {
+                cancelAnimationFrame(liveTimerInterval);
+                liveTimerInterval = null;
+            }
+        }
+        // --------------------------------------------
+
         // รับชื่อทีม
         new WebSocket('ws://' + socketHost + '/ws/race-in-team').onmessage = (e) => {
             const teamName = e.data.trim();
@@ -287,7 +296,7 @@
             }
         };
 
-        // รับสถานะ (เพิ่มเงื่อนไขรองรับ ROBOT_FAULT แจ้งเตือนสีแดงนีออน)
+        // รับสถานะ (คุมเอฟเฟกต์สี และสั่งเปิด/ปิดตัวเลขวิ่งสด)
         new WebSocket('ws://' + socketHost + '/ws/race-in-status').onmessage = (e) => {
             const statusText = e.data.trim();
             const disp = document.getElementById('status-display');
@@ -300,36 +309,43 @@
             
             if (statusText === 'RESET') {
                 disp.innerText = "READY";
+                stopLiveTimer(); // หยุดตัวเลขวิ่ง
                 document.getElementById('time-display').innerText = "0.000 s";
             } else if (statusText === 'ROBOT_FAULT') {
-                disp.innerText = "ROBOT FAULT"; // แสดงข้อความบนทีวีให้ชัดเจน
+                disp.innerText = "ROBOT FAULT";
+                stopLiveTimer(); // หยุดตัวเลขวิ่งเมื่อเกิดเหตุขัดข้อง
             } else {
                 disp.innerText = statusText;
             }
 
             if (statusText === 'READY') {
+                stopLiveTimer();
                 document.getElementById('time-display').innerText = "0.000 s";
             } else if (statusText === 'START' || statusText === 'RACING') {
                 disp.classList.add('status-racing');
                 card.classList.add('card-racing');
                 dot.classList.add('dot-racing');
+                
+                startLiveTimer(); // 🚀 รถออกตัวปุ๊บ! สั่งตัวเลขเวลาวิ่งบนหน้าจอทันที
             } else if (statusText === 'FINISHED') {
                 disp.classList.add('status-finish');
                 card.classList.add('card-finish');
                 dot.classList.add('dot-finish');
+                
+                stopLiveTimer(); // 🏁 รถเข้าเส้นชัย! หยุดลูปวิ่งสดเพื่อเตรียมรับค่าจริง
             } else if (statusText === 'ROBOT_FAULT') {
-                // แจกคลาส CSS สีแดงนีออนกะพริบเตือนหุ่นขัดข้อง
                 disp.classList.add('status-fault');
                 card.classList.add('card-fault');
                 dot.classList.add('dot-fault');
             }
         };
 
-        // รับเวลาวิ่งจบ (พอบอร์ด Pi ยิงเวลา 180.000 กลับมา ช่องนี้จะแสดงผลตัวเลขเต็มเวลาทันที)
+        // รับเวลาวิ่งจบทางการ (Official Time)
         new WebSocket('ws://' + socketHost + '/ws/in-race-time').onmessage = (e) => {
             const timeValue = parseFloat(e.data);
             if (!isNaN(timeValue)) {
-                document.getElementById('time-display').innerText = timeValue.toFixed(3) + " s";
+                stopLiveTimer(); // เพื่อความมั่นใจ สั่งหยุดลูปจับเวลาสดฝั่งเว็บ
+                document.getElementById('time-display').innerText = timeValue.toFixed(3) + " s"; // แปะเวลาทางการลงกระดาน
             }
         };
 

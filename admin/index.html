@@ -162,6 +162,31 @@
         const socketHost = window.location.hostname + ':1880';
         let currentActiveTeam = "";
 
+        // --- [เพิ่มระบบ Running Timer สำหรับมอนิเตอร์แอดมิน] ---
+        let adminTimerInterval = null;
+        let adminStartTimestamp = 0;
+
+        function startAdminLiveTimer() {
+            if (adminTimerInterval) return;
+            adminStartTimestamp = performance.now();
+            
+            function updateAdminTimer() {
+                if (!adminTimerInterval) return;
+                const elapsedSeconds = (performance.now() - adminStartTimestamp) / 1000;
+                document.getElementById('mon-time').innerText = elapsedSeconds.toFixed(3) + " s";
+                adminTimerInterval = requestAnimationFrame(updateAdminTimer);
+            }
+            adminTimerInterval = requestAnimationFrame(updateAdminTimer);
+        }
+
+        function stopAdminLiveTimer() {
+            if (adminTimerInterval) {
+                cancelAnimationFrame(adminTimerInterval);
+                adminTimerInterval = null;
+            }
+        }
+        // --------------------------------------------------
+
         const adminSocket = new WebSocket(`ws://${socketHost}/ws/admin-controller`);
         
         const toggleControlButtons = (enabled) => {
@@ -208,6 +233,7 @@
         document.getElementById('btn-reset').addEventListener('click', () => {
             if (adminSocket.readyState === WebSocket.OPEN) {
                 adminSocket.send(JSON.stringify({ action: "reset" }));
+                stopAdminLiveTimer(); // สั่งรีเซ็ตหยุดจับเวลา
                 document.getElementById('mon-time').innerText = "0.000 s";
                 document.getElementById('mon-team').innerText = "TEAM: ---";
                 currentActiveTeam = "";
@@ -282,12 +308,17 @@
             if (state === "ROBOT_FAULT") {
                 badge.innerText = "ROBOT FAULT";
                 badge.classList.add("status-fault");
+                stopAdminLiveTimer(); // หุ่นพังปุ๊บ สั่งเวลาหยุดทันที
             } else {
                 badge.innerText = state;
                 if (state === "READY") {
                     badge.classList.add("status-ready");
+                    stopAdminLiveTimer();
+                    document.getElementById('mon-time').innerText = "0.000 s";
                 } else if (state === "START" || state === "RACING") {
                     badge.classList.add("status-racing");
+                    
+                    startAdminLiveTimer(); // 🚀 รถออกตัวปุ๊บ! บังคับตัวเลขเวลาสดบนหน้าจอมอนิเตอร์แอดมินวิ่งทันที
                 }
             }
         };
@@ -296,7 +327,8 @@
         wsTime.onmessage = (e) => {
             const timeValue = parseFloat(e.data);
             if (!isNaN(timeValue)) {
-                document.getElementById('mon-time').innerText = timeValue.toFixed(3) + " s";
+                stopAdminLiveTimer(); // สั่งเบรกการวิ่งสดฝั่งแอดมิน
+                document.getElementById('mon-time').innerText = timeValue.toFixed(3) + " s"; // นำค่าเป็นทางการมาเขียนแสดง
             }
         };
     </script>
