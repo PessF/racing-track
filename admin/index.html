@@ -199,6 +199,7 @@
             document.getElementById('btn-ready').disabled = !enabled;
             document.getElementById('btn-reset').disabled = !enabled;
             document.getElementById('btn-fault').disabled = !enabled;
+            document.getElementById('btn-void').disabled = !enabled;
         };
 
         adminSocket.onopen = () => {
@@ -250,6 +251,15 @@
             if (confirm("ยืนยันการบันทึกสถานะหุ่นขัดข้อง (เวลา 3 นาที) สำหรับรอบนี้ใช่ไหม?")) {
                 if (adminSocket.readyState === WebSocket.OPEN) {
                     adminSocket.send(JSON.stringify({ action: "fault" }));
+                }
+            }
+        });
+
+        document.getElementById('btn-void').addEventListener('click', () => {
+            if (confirm("คุณต้องการปรับให้รอบล่าสุดของทีมนี้เป็น 'โมฆะ' และสั่งวิ่งใหม่ใช่หรือไม่? (สถิติรอบนี้บนตารางจะถูกยกเลิก)")) {
+                if (adminSocket.readyState === WebSocket.OPEN) {
+                    // ส่งคำสั่งคำสั่งโมฆะไปที่ Node-RED และ Python
+                    adminSocket.send(JSON.stringify({ action: "void" })); 
                 }
             }
         });
