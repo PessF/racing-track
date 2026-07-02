@@ -166,12 +166,10 @@
         .rank-highlight { color: #4a4163; text-align: center; } 
 
         /* ==================== DYNAMIC LEADERBOARD ANIMATION ==================== */
-        /* คลาสสลับตำแหน่งแถวแบบสมูทเลื่อนไหล */
         .animate-move {
             transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s ease-out !important;
         }
         
-        /* ข้อมูลใหม่โผล่เข้ามาติด Top 10 */
         .row-new-entry {
             animation: slideInNewRow 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
@@ -263,13 +261,17 @@
     <script>
         const socketHost = `${location.hostname}:1880`;
         
-        // รับชื่อทีม
+        // รับชื่อทีม (ปรับปรุง: รองรับการตรวจจับค่าว่างและคำสั่งเคลียร์บอร์ดจากการ Reset)
         new WebSocket('ws://' + socketHost + '/ws/race-in-team').onmessage = (e) => {
             const teamName = e.data.trim();
-            document.getElementById('team-display').innerText = teamName ? "TEAM: " + teamName : "TEAM: ---";
+            if (!teamName || teamName === "" || teamName === "null" || teamName === "RESET") {
+                document.getElementById('team-display').innerText = "TEAM: ---";
+            } else {
+                document.getElementById('team-display').innerText = "TEAM: " + teamName;
+            }
         };
 
-        // รับสถานะ (เพิ่มการรองรับสถานะ FINISHED)
+        // รับสถานะ
         new WebSocket('ws://' + socketHost + '/ws/race-in-status').onmessage = (e) => {
             const statusText = e.data.trim();
             const disp = document.getElementById('status-display');
@@ -306,7 +308,6 @@
             if (!isNaN(timeValue)) {
                 document.getElementById('time-display').innerText = timeValue.toFixed(3) + " s";
             }
-            // ปล่อยให้ระบบสีและสถานะ FINISHED ทำงานผ่าน /ws/status แทน
         };
 
         // เชื่อมต่อบอร์ดผู้นำ
@@ -330,12 +331,12 @@
                 }
             });
 
-            // 2. เรนเดอร์ข้อมูลเซ็ตใหม่ลงตาราง (แก้ตัวแปรเป็น item.runtime)
+            // 2. เรนเดอร์ข้อมูลเซ็ตใหม่ลงตาราง
             let newRowsHTML = '';
             data.forEach((item, i) => {
                 if (!item.name || item.runtime === undefined) return; 
                 const safeName = item.name.replace(/"/g, '&quot;');
-                const formattedTime = parseFloat(item.runtime).toFixed(3); // บังคับทศนิยม 3 ตำแหน่ง
+                const formattedTime = parseFloat(item.runtime).toFixed(3);
                 
                 newRowsHTML += `<tr class="data-row" data-team="${safeName}">
                     <td class="rank-highlight">${i + 1}</td>
