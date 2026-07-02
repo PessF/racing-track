@@ -249,19 +249,15 @@
         });
 
 
-        const adminLbSocket = new WebSocket(`ws://${socketHost}/ws/admin-runs-log`);
+       const adminLbSocket = new WebSocket(`ws://${socketHost}/ws/admin-runs-log`);
         
         adminLbSocket.onopen = () => {
             console.log("Admin Leaderboard WebSocket Connected.");
             adminLbSocket.send("request_data");
         };
 
-adminLbSocket.onmessage = (e) => {
+        adminLbSocket.onmessage = (e) => {
             const data = JSON.parse(e.data);
-            
-            // 🔍 บรรทัดนี้สำคัญมาก: สั่งพ่นข้อมูลดิบออกที่หน้าต่างตรวจสอบของเบราว์เซอร์
-            console.log("--- ข้อมูลสถิติจากบอร์ดสนาม ---");
-            console.log(data); 
             
             if (Array.isArray(data)) {
                 const body = document.getElementById('admin-table-body');
@@ -273,34 +269,43 @@ adminLbSocket.onmessage = (e) => {
                     return;
                 }
 
-                // 🌟 [ขั้นตอนที่ 1]: ค้นหาเวลาที่ดีที่สุดของทั้งสนามเพื่อทำไฮไลท์
-                let globalBestTime = 999;
+                // วนลูปวาดตารางทีละแถว (ทีละทีม)
                 data.forEach((item) => {
-                    // ⚠️ หากชื่อคีย์ใน console.log ไม่ใช่ run1, run2, run3 ให้เปลี่ยนตรงนี้ให้ตรงกันนะครับ
-                    const runs = [item.run1, item.run2, item.run3];
-                    runs.forEach((run) => {
+                    
+                    // 🌟 [ขั้นตอนสำคัญ]: หาเวลาที่ดีที่สุดเฉพาะ "ภายในแถวของตัวเอง" เท่านั้น
+                    let localBestTime = 999.0;
+                    const runsArray = [item.run1, item.run2, item.run3];
+                    
+                    runsArray.forEach((run) => {
                         if (run) {
                             const runTime = parseFloat(run);
-                            if (!isNaN(runTime) && runTime < globalBestTime && runTime < 180) {
-                                globalBestTime = runTime;
+                            // ต้องเป็นตัวเลข และต้องไม่นับเวลาฟาวล์ 180 วินาที
+                            if (!isNaN(runTime) && runTime < localBestTime && runTime < 180) {
+                                localBestTime = runTime;
                             }
                         }
                     });
-                });
 
-                // 🌟 [ขั้นตอนที่ 2]: แสดงผลลงตาราง
-                data.forEach((item) => {
+                    // แปลงค่าเวลาที่ดีที่สุดของตัวเองเป็นสตริง 3 ตำแหน่งเพื่อใช้เทียบ
+                    const strLocalBest = localBestTime.toFixed(3);
+
+                    // ฟังก์ชันเช็กว่าช่องไหนในแถวนี้ที่ตรงกับเวลาที่ดีที่สุดของตัวเอง
                     const getHighlightClass = (runTimeVal) => {
                         if (!runTimeVal) return "";
                         const currentRunTime = parseFloat(runTimeVal);
-                        return (currentRunTime === globalBestTime && globalBestTime < 180) ? "best-run-highlight" : "";
+                        if (isNaN(currentRunTime)) return "";
+
+                        const strCurrentRun = currentRunTime.toFixed(3);
+                        // ถ้าค่าในช่องนี้ ตรงกับสถิติที่ดีที่สุดของตัวเอง ให้สาดสีไฮไลท์
+                        return (strCurrentRun === strLocalBest && localBestTime < 180) ? "best-run-highlight" : "";
                     };
 
-                    // ⚠️ ตรวจสอบตัวแปร item.run1, item.run2, item.run3 ให้สัมพันธ์กับหน้าต่าง Console
+                    // ฟอร์แมตตัวเลขเพื่อแสดงผลข้อความในตาราง
                     const r1 = item.run1 ? parseFloat(item.run1).toFixed(3) + " s" : "-";
                     const r2 = item.run2 ? parseFloat(item.run2).toFixed(3) + " s" : "-";
                     const r3 = item.run3 ? parseFloat(item.run3).toFixed(3) + " s" : "-";
 
+                    // ตรวจสอบเพื่อแปะสีกระดาน (จะไฮไลท์ช่องที่เร็วที่สุดของตัวเองในแต่ละบรรทัด)
                     const h1 = getHighlightClass(item.run1);
                     const h2 = getHighlightClass(item.run2);
                     const h3 = getHighlightClass(item.run3);
@@ -316,7 +321,6 @@ adminLbSocket.onmessage = (e) => {
                 });
             }
         };
-
 
         const wsStatus = new WebSocket(`ws://${socketHost}/ws/race-in-status`);
         wsStatus.onmessage = (e) => {
