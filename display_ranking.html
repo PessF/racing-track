@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Display - Ranking Round</title>
+    <style>
+        .false-start { background-color: #ff3333 !important; color: white; }
+        .finished { background-color: #33cc33 !important; color: white; }
+        .racing { background-color: #333333 !important; color: #00ff00; }
+    </style>
+</head>
+<body id="bg" style="background-color: #222; color: white; font-family: sans-serif; text-align: center; padding-top: 50px;">
+    
+    <h1 id="title" style="font-size: 40px;">📺 FIELD 1 - RANKING MODE</h1>
+    <h2 style="color: #aaa;">เวลาสะสม 3 นาทีประจำรอบ: <span id="match-timer" style="color: yellow;">03:00</span></h2>
+    
+    <hr style="border-color: #444; margin: 40px 0;">
+
+    <div>
+        <h1 style="font-size: 150px; margin: 20px 0;" id="big-timer">0.000</h1>
+        <h2 id="status-text" style="font-size: 40px; color: #aaa;">STATUS: IDLE</h2>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const fieldNum = urlParams.get('field') || '1';
+        document.getElementById("title").innerText = `📺 FIELD ${fieldNum} - RANKING MODE`;
+
+        const wsUrl = "ws://" + window.location.hostname + ":1880/ws/competition";
+        let ws;
+
+        function connectWS() {
+            ws = new WebSocket(wsUrl);
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+
+                if (msg.field === `field${fieldNum}`) {
+                    const bg = document.getElementById("bg");
+                    const statusText = document.getElementById("status-text");
+
+                    if (msg.action === "ui_state_update") {
+                        statusText.innerText = "STATUS: " + msg.status;
+                        
+                        if (msg.status === "IDLE") {
+                            bg.className = "";
+                            document.getElementById("big-timer").innerText = "0.000";
+                        } else if (msg.status === "RACING") {
+                            bg.className = "racing";
+                            if (msg.current_time) {
+                                document.getElementById("big-timer").innerText = parseFloat(msg.current_time).toFixed(3);
+                            }
+                        } else if (msg.status === "FINISHED") {
+                            bg.className = "finished";
+                            document.getElementById("big-timer").innerText = parseFloat(msg.lap_time).toFixed(3);
+                        } else if (msg.status === "FALSE_START") {
+                            bg.className = "false-start";
+                            document.getElementById("big-timer").innerText = "❌ FOUL";
+                        }
+                    }
+                    if (msg.action === "ui_timer_update") {
+                        document.getElementById("match-timer").innerText = msg.time_string;
+                    }
+                }
+            };
+
+            ws.onclose = () => { setTimeout(connectWS, 2000); };
+        }
+
+        connectWS();
+    </script>
+</body>
+</html>

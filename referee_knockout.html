@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Referee - Knockout Round</title>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h1>⚔️ กรรมการรอบแบทเทิล (Knockout)</h1>
+    <p>สถานะ WebSocket: <strong id="ws-status">กำลังเชื่อมต่อ...</strong></p>
+
+    <hr>
+    <h2>🎮 แผงควบคุมปล่อยตัวรอบ Knockout (สั่งพร้อมกัน 2 สนาม)</h2>
+    <button onclick="triggerGlobalCountdown()" style="padding: 20px 40px; font-size: 20px; background-color: #ff4d4d; color: white; font-weight: bold; border: none; cursor: pointer;">
+        🚦 เริ่มยิงสัญญาณไฟปล่อยตัว (F1 Light Start)
+    </button>
+
+    <hr>
+    <h3>🕹️ ปุ่มควบคุมสถานะแยกสนาม</h3>
+    <table border="0" cellpadding="10">
+        <tr>
+            <td>
+                <h3>🟦 ควบคุมสนาม 1</h3>
+                <button onclick="fieldAction('field1', 'set_ready')">สนาม 1: พร้อม</button>
+                <button onclick="fieldAction('field1', 'dnf')">สนาม 1: รถคว่ำ (DNF)</button>
+                <button onclick="fieldAction('field1', 'reset_field')">สนาม 1: Reset</button>
+            </td>
+            <td style="padding-left: 50px;">
+                <h3>🟥 ควบคุมสนาม 2</h3>
+                <button onclick="fieldAction('field2', 'set_ready')">สนาม 2: พร้อม</button>
+                <button onclick="fieldAction('field2', 'dnf')">สนาม 2: รถคว่ำ (DNF)</button>
+                <button onclick="fieldAction('field2', 'reset_field')">สนาม 2: Reset</button>
+            </td>
+        </tr>
+    </table>
+
+    <script>
+        const wsUrl = "ws://" + window.location.hostname + ":1880/ws/competition";
+        let ws;
+
+        function connectWS() {
+            ws = new WebSocket(wsUrl);
+            ws.onopen = () => { document.getElementById("ws-status").innerText = "ONLINE"; document.getElementById("ws-status").style.color = "green";};
+            ws.onclose = () => { setTimeout(connectWS, 2000); };
+        }
+
+        function triggerGlobalCountdown() {
+            // คำนวณ Timestamp อีก 5 วินาทีข้างหน้าส่งไปให้ทุกจอเปิดไฟแดงซิงค์ตรงกัน
+            const greenTime = Date.now() + 5000; 
+            ws.send(JSON.stringify({
+                "sender": "referee_ko",
+                "action": "global_countdown_start",
+                "green_timestamp": greenTime
+            }));
+        }
+
+        function fieldAction(fieldId, actionName) {
+            ws.send(JSON.stringify({ "sender": "referee_ko", "action": actionName, "field": fieldId }));
+        }
+
+        connectWS();
+    </script>
+</body>
+</html>

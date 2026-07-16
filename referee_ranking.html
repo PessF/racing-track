@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Referee - Ranking Round</title>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h1 id="page-title">📋 กรรมการรอบคัดเลือก (Ranking)</h1>
+    <p>สถานะ WebSocket: <strong id="ws-status">กำลังเชื่อมต่อ...</strong></p>
+
+    <hr>
+    <h2>👤 เลือกผู้เข้าแข่งขัน (ดึงจากฐานข้อมูล)</h2>
+    <label style="font-size: 18px; font-weight: bold;">เลือกทีม: </label>
+    <select id="competitor_select" style="font-size: 18px; padding: 5px; width: 300px;" onchange="syncSelectedData()">
+        <option value="">-- กำลังโหลดรายชื่อ... --</option>
+    </select>
+    
+    <br><br>
+    <label>รอบที่วิ่ง (Round): </label>
+    <input type="number" id="round_number" value="1" style="width: 50px; font-size: 16px;">
+    
+    <p>รุ่นการแข่งขัน: <strong id="display_division" style="color: blue;">-</strong></p>
+
+    <hr>
+    <h2>⏱️ สถานะสนามแข่งแบบ Real-time</h2>
+    <p>สถานะสนาม: <strong id="field-status">IDLE</strong></p>
+    <p>เวลาหลัก 3 นาที: <span id="match-timer" style="font-size: 20px; font-weight: bold;">03:00</span></p>
+    <h2 style="font-size: 36px; color: green; margin: 10px 0;">เวลาหุ่นยนต์: <span id="robot-time">0.000</span> วินาที</h2>
+    
+    <div id="sanity-warning" style="background-color: yellow; padding: 10px; display: none; font-weight: bold; margin-bottom: 10px;">
+        ⚠️ คำเตือน: เวลาต่ำกว่า 2.000 วินาที อาจเกิดปัญหาเซนเซอร์เบิ้ล กรุณาตรวจสอบ!
+    </div>
+
+    <hr>
+    <h2>🎮 ปุ่มควบคุมการแข่ง</h2>
+    <button onclick="controlAction('start_match_timer')" style="padding: 10px 15px;">เริ่มนับเวลา 3 นาที</button>
+    <button onclick="controlAction('set_ready')" style="padding: 10px 15px; background-color: lightblue;">นักแข่งพร้อม (Ready)</button>
+    <button onclick="controlAction('dnf')" style="padding: 10px 15px; background-color: #ff9999;">รถคว่ำ/ไม่จบ (DNF)</button>
+    <button onclick="controlAction('reset_field')" style="padding: 10px 15px;">Reset สนาม</button>
+    
+    <br><br>
+    <button onclick="confirmSaveData()" style="padding: 15px 30px; font-size: 18px; font-weight: bold; background-color: #99ff99;">💾 บันทึกผลลงฐานข้อมูล (Confirm)</button>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const fieldNum = urlParams.get('field') || '1';
+        document.getElementById("page-title").innerText = `📋 กรรมการรอบคัดเลือก - สนาม ${fieldNum}`;
+
+        const wsUrl = "ws://" + window.location.hostname + ":1880/ws/competition";
+        let ws;
+        let currentRecordedTime = 0.000;
+        let selectedDivision = "";
+
+        function connectWS() {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                document.getElementById("ws-status").innerText = "ONLINE";
+                document.getElementById("ws-status").style.color = "green";
+                // ขอรายชื่อนักแข่งจาก DB ทันทีที่เชื่อมต่อสำเร็จ
+                ws.send(JSON.stringify({ "action": "get_competitors" }));
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                
+                // ถ้าระบบส่งรายชื่อนักแข่งมาจากฐานข้อมูล
+                if (msg.action === "ui_competitors_list") {
+                    populateDropdown(msg.data);
+                }
+
+                // รับข้อมูลเฉพาะสนามตัวเอง
+                if (msg.field === `field${fieldNum}`) {
+                    if (msg.action === "ui_state_update") {
+                        document.getElementById("field-status").innerText = msg.status || "IDLE";
+                        if (msg.lap_time !== undefined) {
+                            currentRecordedTime = parseFloat(msg.lap_time);
+                            document.getElementById("robot-time").innerText = currentRecordedTime.toFixed(3);
+                            
+                            // Sanity Check
+                            if (currentRecordedTime > 0 && currentRecordedTime < 2.000) {
+                                document.getElementById("sanity-warning").style.display = "block";
+                            } else {
+                                document.getElementById("sanity-warning").style.display = "none";
+                            }
+                        }
+                    }
+                    if (msg.action === "ui_timer_update") {
+                        document.getElementById("match-timer").innerText = msg.time_string;
+                    }
+                }
+            };
+
+            ws.onclose = () => { setTimeout(connectWS, 2000); };
+        }
+
+        function populateDropdown(competitors) {
+            const select = document.getElementById("competitor_select");
+            select.innerHTML = '<option value="">-- เลือกผู้เข้าแข่งขัน --</option>';
+            competitors.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = c.id;
+                opt.text = `[ID: ${c.id}] ${c.name}`;
+                opt.setAttribute('data-division', c.division);
+                select.appendChild(opt);
+            });
+        }
+
+        function syncSelectedData() {
+            const select = document.getElementById("competitor_select");
+            const selectedOpt = select.options[select.selectedIndex];
+            selectedDivision = selectedOpt.getAttribute('data-division') || "-";
+            document.getElementById("display_division").innerText = selectedDivision;
+        }
+
+        function controlAction(actionName) {
+            ws.send(JSON.stringify({ "sender": `referee_f${fieldNum}`, "action": actionName, "field": `field${fieldNum}` }));
+        }
+
+        function confirmSaveData() {
+            const compId = document.getElementById("competitor_select").value;
+            const roundNum = document.getElementById("round_number").value;
+            
+            if(!compId) { alert("กรุณาเลือกผู้เข้าแข่งขันก่อนบันทึก!"); return; }
+
+            ws.send(JSON.stringify({
+                "sender": `referee_f${fieldNum}`,
+                "action": "save_to_db",
+                "field": `field${fieldNum}`,
+                "payload": {
+                    "competitor_id": parseInt(compId),
+                    "round_number": parseInt(roundNum),
+                    "division": selectedDivision,
+                    "recorded_time": currentRecordedTime
+                }
+            }));
+            alert("บันทึกข้อมูลเรียบร้อย!");
+            document.getElementById("sanity-warning").style.display = "none";
+        }
+
+        connectWS();
+    </script>
+</body>
+</html>
