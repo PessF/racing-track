@@ -97,10 +97,12 @@
         function populateDropdown(competitors) {
             const select = document.getElementById("competitor_select");
             select.innerHTML = '<option value="">-- เลือกผู้เข้าแข่งขัน --</option>';
+            
             competitors.forEach(c => {
                 const opt = document.createElement("option");
                 opt.value = c.id;
-                opt.text = `[ID: ${c.id}] ${c.name}`;
+                // เปลี่ยนจาก c.name เป็น c.team_name (หรือ c.student_name ตามต้องการ)
+                opt.text = `[ID: ${c.id}] ${c.team_name || c.student_name}`; 
                 opt.setAttribute('data-division', c.division);
                 select.appendChild(opt);
             });
