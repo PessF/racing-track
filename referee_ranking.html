@@ -65,7 +65,7 @@
                 const msg = JSON.parse(event.data);
                 
                 // ถ้าระบบส่งรายชื่อนักแข่งมาจากฐานข้อมูล
-                if (msg.action === "ui_competitors_list") {
+                if (msg.action === "competitors_list") {
                     populateDropdown(msg.data);
                 }
 
