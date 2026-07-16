@@ -72,42 +72,30 @@
                 console.log("ส่งข้อมูลร้องขอรายชื่อนักแข่งแล้ว: ", reqMsg);
             };
 
-            ws.onmessage = (event) => {
-                console.log("ได้รับข้อความดิบส่งมาจาก Server: ", event.data);
+ws.onmessage = (event) => {
+                console.log("=== ได้รับข้อมูลจาก Node-RED ===");
+                console.log(event.data); // ดูโครงสร้างดิบที่ส่งมาใน Console
                 
                 let msg;
                 try {
                     msg = JSON.parse(event.data);
                 } catch(e) {
-                    console.error("ไม่สามารถแปลงข้อมูลที่ได้เป็น JSON ได้: ", e);
+                    console.error("แปลง JSON ล้มเหลว:", e);
                     return;
                 }
                 
-                // ค้นหาเงื่อนไขของรายชื่อผู้เข้าแข่งขัน
+                // ตรวจสอบเงื่อนไขการรับรายชื่อนักแข่ง
                 if (msg.action === "competitors_list") {
-                    console.log("พบ Action: competitors_list กำลังวาด Dropdown... ข้อมูล:", msg.data);
-                    populateDropdown(msg.data);
-                }
-
-                // รับข้อมูลเฉพาะสนามตัวเอง
-                if (msg.field === `field${fieldNum}`) {
-                    if (msg.action === "ui_state_update") {
-                        document.getElementById("field-status").innerText = msg.status || "IDLE";
-                        if (msg.lap_time !== undefined) {
-                            currentRecordedTime = parseFloat(msg.lap_time);
-                            document.getElementById("robot-time").innerText = currentRecordedTime.toFixed(3);
-                            
-                            // Sanity Check
-                            if (currentRecordedTime > 0 && currentRecordedTime < 2.000) {
-                                document.getElementById("sanity-warning").style.display = "block";
-                            } else {
-                                document.getElementById("sanity-warning").style.display = "none";
-                            }
-                        }
+                    console.log("พบ action: competitors_list -> กำลังส่งข้อมูลเข้า Dropdown");
+                    
+                    // ป้องกันกรณีข้อมูลถูกห่อหุ้มซ้อนกัน (Double Payload)
+                    let arrayData = msg.data || msg.payload; 
+                    
+                    if (typeof arrayData === 'string') {
+                        arrayData = JSON.parse(arrayData);
                     }
-                    if (msg.action === "ui_timer_update") {
-                        document.getElementById("match-timer").innerText = msg.time_string;
-                    }
+                    
+                    populateDropdown(arrayData);
                 }
             };
 
