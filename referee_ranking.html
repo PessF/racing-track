@@ -122,8 +122,10 @@
         function populateDropdown(competitors) {
             const select = document.getElementById("competitor_select");
             
+            // 1. ดักจับกรณีไม่มีข้อมูลส่งมาหรือ MySQL ดึงมาไม่ได้
             if (!competitors || competitors.length === 0) {
-                select.innerHTML = '<option value="">-- ไม่พบข้อมูลผู้เข้าแข่งขันในระบบ --</option>';
+                select.innerHTML = '<option value="">-- ไม่พบรายชื่อนักแข่งในฐานข้อมูล --</option>';
+                console.warn("แจ้งเตือน: ได้รับข้อมูลรายชื่อว่างเปล่าจาก Server!");
                 return;
             }
 
@@ -133,13 +135,14 @@
                 const opt = document.createElement("option");
                 opt.value = c.id;
                 
-                // ตรวจสอบข้อมูลเพื่อไม่ให้แสดงคำว่า undefined ออกหน้าจอ
-                const displayName = c.team_name ? c.team_name : (c.student_name ? c.student_name : "ไม่มีชื่อ");
+                // 2. ป้องกันคำว่า undefined แสดงบนหน้าจอ
+                const displayName = c.team_name ? c.team_name : (c.student_name ? c.student_name : "นักแข่งนิรนาม");
                 
                 opt.text = `[ID: ${c.id}] ${displayName}`; 
                 opt.setAttribute('data-division', c.division || 'Junior');
                 select.appendChild(opt);
             });
+            console.log("วาด Dropdown รายชื่อเรียบร้อยแล้ว จำนวน:", competitors.length, "คน");
         }
 
         function syncSelectedData() {
