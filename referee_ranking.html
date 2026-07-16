@@ -46,7 +46,14 @@
         const fieldNum = urlParams.get('field') || '1';
         document.getElementById("page-title").innerText = `📋 กรรมการรอบคัดเลือก - สนาม ${fieldNum}`;
 
-        const wsUrl = "ws://" + window.location.hostname + ":1880/ws/competition";
+        // ตรวจเช็กว่าถ้ารันหน้าจอผ่านการดับเบิ้ลคลิกไฟล์ตรงๆ ให้ชี้เป้าไปที่ localhost อัตโนมัติ
+        let host = window.location.hostname;
+        if (!host || host === "") {
+            host = "127.0.0.1"; 
+        }
+        const wsUrl = "ws://" + host + ":1880/ws/competition";
+        console.log("กำลังพยายามเชื่อมต่อไปที่ WS URL: " + wsUrl);
+
         let ws;
         let currentRecordedTime = 0.000;
         let selectedDivision = "";
@@ -55,17 +62,30 @@
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
+                console.log("เชื่อมต่อ WebSocket สำเร็จ!");
                 document.getElementById("ws-status").innerText = "ONLINE";
                 document.getElementById("ws-status").style.color = "green";
-                // ขอรายชื่อนักแข่งจาก DB ทันทีที่เชื่อมต่อสำเร็จ
-                ws.send(JSON.stringify({ "action": "get_competitors" }));
+                
+                // ขอรายชื่อนักแข่งจาก DB ทันทีเมื่อต่อเชื่อมสำเร็จ
+                const reqMsg = JSON.stringify({ "action": "get_competitors" });
+                ws.send(reqMsg);
+                console.log("ส่งข้อมูลร้องขอรายชื่อนักแข่งแล้ว: ", reqMsg);
             };
 
             ws.onmessage = (event) => {
-                const msg = JSON.parse(event.data);
+                console.log("ได้รับข้อความดิบส่งมาจาก Server: ", event.data);
                 
-                // ถ้าระบบส่งรายชื่อนักแข่งมาจากฐานข้อมูล
+                let msg;
+                try {
+                    msg = JSON.parse(event.data);
+                } catch(e) {
+                    console.error("ไม่สามารถแปลงข้อมูลที่ได้เป็น JSON ได้: ", e);
+                    return;
+                }
+                
+                // ค้นหาเงื่อนไขของรายชื่อผู้เข้าแข่งขัน
                 if (msg.action === "competitors_list") {
+                    console.log("พบ Action: competitors_list กำลังวาด Dropdown... ข้อมูล:", msg.data);
                     populateDropdown(msg.data);
                 }
 
@@ -91,19 +111,33 @@
                 }
             };
 
-            ws.onclose = () => { setTimeout(connectWS, 2000); };
+            ws.onclose = () => { 
+                console.log("การเชื่อมต่อหลุด.. กำลังทำการเชื่อมต่อใหม่ในอีก 2 วินาที");
+                document.getElementById("ws-status").innerText = "OFFLINE (กำลังเชื่อมต่อใหม่...)";
+                document.getElementById("ws-status").style.color = "red";
+                setTimeout(connectWS, 2000); 
+            };
         }
 
         function populateDropdown(competitors) {
             const select = document.getElementById("competitor_select");
+            
+            if (!competitors || competitors.length === 0) {
+                select.innerHTML = '<option value="">-- ไม่พบข้อมูลผู้เข้าแข่งขันในระบบ --</option>';
+                return;
+            }
+
             select.innerHTML = '<option value="">-- เลือกผู้เข้าแข่งขัน --</option>';
             
             competitors.forEach(c => {
                 const opt = document.createElement("option");
                 opt.value = c.id;
-                // เปลี่ยนจาก c.name เป็น c.team_name (หรือ c.student_name ตามต้องการ)
-                opt.text = `[ID: ${c.id}] ${c.team_name || c.student_name}`; 
-                opt.setAttribute('data-division', c.division);
+                
+                // ตรวจสอบข้อมูลเพื่อไม่ให้แสดงคำว่า undefined ออกหน้าจอ
+                const displayName = c.team_name ? c.team_name : (c.student_name ? c.student_name : "ไม่มีชื่อ");
+                
+                opt.text = `[ID: ${c.id}] ${displayName}`; 
+                opt.setAttribute('data-division', c.division || 'Junior');
                 select.appendChild(opt);
             });
         }
