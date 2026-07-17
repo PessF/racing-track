@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>จอสนาม — Track Display</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --asphalt:#0B0E11;
+    --panel:#14181D;
+    --line:#242A31;
+    --red:#E0242C;
+    --amber:#F5A623;
+    --green:#17C964;
+    --text:#F5F5F0;
+    --muted:#7C8896;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{
+    height:100%;
+    background:var(--asphalt);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    overflow:hidden;
+  }
+  body{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-between;
+    padding:3vh 4vw;
+    background-image:
+      repeating-linear-gradient(135deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 40px);
+  }
+
+  /* ---- header: racer identity ---- */
+  .id-bar{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:2px solid var(--line);
+    padding-bottom:1.4vh;
+  }
+  .id-bar .name{
+    font-family:'Rajdhani',sans-serif;
+    font-weight:700;
+    font-size:5vh;
+    letter-spacing:0.5px;
+  }
+  .id-bar .meta{
+    font-size:2.1vh;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:2px;
+  }
+  .id-bar .run-badge{
+    font-family:'Rajdhani',sans-serif;
+    font-weight:700;
+    font-size:2.6vh;
+    color:var(--asphalt);
+    background:var(--amber);
+    padding:0.6vh 1.6vh;
+    border-radius:3px;
+  }
+
+  /* ---- F1-style light gantry ---- */
+  .gantry{
+    display:flex;
+    gap:2.2vw;
+    padding:2vh 0;
+  }
+  .bulb{
+    width:6vh;
+    height:6vh;
+    border-radius:50%;
+    background:#1B1010;
+    border:3px solid #3A2020;
+    box-shadow:inset 0 0 8px rgba(0,0,0,0.6);
+    transition:background .12s ease, box-shadow .12s ease;
+  }
+  .bulb.lit{
+    background:var(--red);
+    border-color:#ff5b5b;
+    box-shadow:0 0 4vh rgba(224,36,44,0.85), inset 0 0 8px rgba(255,255,255,0.25);
+  }
+  .bulb.go{
+    background:var(--green);
+    border-color:#5CFFA6;
+    box-shadow:0 0 4vh rgba(23,201,100,0.9), inset 0 0 8px rgba(255,255,255,0.25);
+  }
+
+  /* ---- status banner ---- */
+  .status{
+    font-family:'Rajdhani',sans-serif;
+    font-weight:700;
+    font-size:3.4vh;
+    letter-spacing:6px;
+    text-transform:uppercase;
+    padding:1vh 4vh;
+    border-radius:6px;
+    background:var(--panel);
+    border:1px solid var(--line);
+  }
+  .status.idle{color:var(--muted);}
+  .status.armed{color:var(--amber); border-color:var(--amber);}
+  .status.racing{color:var(--green); border-color:var(--green); animation:pulse 1s ease-in-out infinite;}
+  .status.finish{color:var(--text); border-color:var(--text);}
+  .status.dq, .status.timeout, .status.false_start{color:var(--red); border-color:var(--red);}
+  @keyframes pulse{50%{opacity:.55;}}
+
+  /* ---- timers ---- */
+  .timers{
+    width:100%;
+    display:flex;
+    justify-content:center;
+    gap:6vw;
+  }
+  .timer-block{text-align:center;}
+  .timer-block .label{
+    font-size:2vh;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:3px;
+    margin-bottom:0.5vh;
+  }
+  .timer-block .value{
+    font-family:'Rajdhani',sans-serif;
+    font-weight:700;
+    font-size:15vh;
+    line-height:1;
+    font-variant-numeric:tabular-nums;
+  }
+  .timer-block .value.warn{color:var(--amber);}
+  .timer-block .value.crit{color:var(--red);}
+  .timer-block .value.go{color:var(--green);}
+
+  .footer{
+    width:100%;
+    text-align:center;
+    color:var(--muted);
+    font-size:1.7vh;
+    letter-spacing:2px;
+    text-transform:uppercase;
+  }
+</style>
+</head>
+<body>
+
+  <div class="id-bar">
+    <div>
+      <div class="name" id="racerName">— รอกรรมการกรอกชื่อ —</div>
+      <div class="meta"><span id="teamName">-</span> · <span id="divisionName">-</span></div>
+    </div>
+    <div class="run-badge">รอบที่ <span id="runNo">-</span></div>
+  </div>
+
+  <div class="gantry" id="gantry">
+    <div class="bulb" data-i="1"></div>
+    <div class="bulb" data-i="2"></div>
+    <div class="bulb" data-i="3"></div>
+    <div class="bulb" data-i="4"></div>
+    <div class="bulb" data-i="5"></div>
+  </div>
+
+  <div class="status idle" id="statusBanner">รอเริ่ม</div>
+
+  <div class="timers">
+    <div class="timer-block" id="mainTimerBlock">
+      <div class="label">เวลาหลัก</div>
+      <div class="value" id="mainTimer">3:00</div>
+    </div>
+    <div class="timer-block">
+      <div class="label">เวลาหุ่นยนต์</div>
+      <div class="value" id="robotTimer">0.00</div>
+    </div>
+  </div>
+
+  <div class="footer">Line Tracking Championship — Track 1</div>
+
+<script>
+const TRACK_ID = "track1";
+const WS_URL = `ws://${location.hostname || "192.168.1.100"}:1880/ws/track`;
+
+const els = {
+  name: document.getElementById('racerName'),
+  team: document.getElementById('teamName'),
+  division: document.getElementById('divisionName'),
+  run: document.getElementById('runNo'),
+  status: document.getElementById('statusBanner'),
+  mainTimer: document.getElementById('mainTimer'),
+  mainTimerBlock: document.getElementById('mainTimerBlock'),
+  robotTimer: document.getElementById('robotTimer'),
+  bulbs: [...document.querySelectorAll('.bulb')],
+};
+
+const STATUS_LABEL = {
+  IDLE: "รอเริ่ม", MAIN_ARMED: "เตรียมพร้อม — กด READY", READY: "พร้อมวิ่ง",
+  RACING: "กำลังวิ่ง", FINISH: "จบรอบ",
+  FINAL_LIGHTS: "รอสัญญาณไฟ", FINAL_RACING: "กำลังวิ่ง (FINAL)", FINAL_FINISH: "จบรอบ (FINAL)",
+};
+const STATUS_CLASS = {
+  IDLE:'idle', MAIN_ARMED:'armed', READY:'armed', RACING:'racing', FINISH:'finish',
+  FINAL_LIGHTS:'armed', FINAL_RACING:'racing', FINAL_FINISH:'finish',
+};
+
+function setStatus(state, extraClass){
+  els.status.textContent = STATUS_LABEL[state] || state;
+  els.status.className = 'status ' + (extraClass || STATUS_CLASS[state] || 'idle');
+}
+
+function fmtMs(ms){
+  const s = ms/1000;
+  return s.toFixed(2);
+}
+function fmtCountdown(ms){
+  const total = Math.max(0, Math.round(ms/1000));
+  const m = Math.floor(total/60);
+  const s = total%60;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function resetGantry(){ els.bulbs.forEach(b=>{b.classList.remove('lit','go');}); }
+
+function connect(){
+  const ws = new WebSocket(WS_URL);
+  ws.onmessage = (evt)=>{
+    let msg;
+    try{ msg = JSON.parse(evt.data); }catch(e){ return; }
+
+    // full state snapshot (retained comp/track1/state)
+    if (msg.state !== undefined){
+      els.name.textContent = msg.name || "— รอกรรมการกรอกชื่อ —";
+      els.team.textContent = msg.team || "-";
+      els.division.textContent = msg.division || "-";
+      els.run.textContent = msg.run || "-";
+      setStatus(msg.state);
+      if (msg.state === 'IDLE'){
+        resetGantry();
+        els.mainTimer.textContent = "3:00";
+        els.mainTimer.className = 'value';
+        els.robotTimer.textContent = "0.00";
+      }
+      els.mainTimerBlock.style.opacity = (msg.mode === 'final') ? 0.25 : 1;
+    }
+
+    // transient events
+    if (msg.type === 'main_countdown_321'){
+      resetGantry();
+      let n=0;
+      const iv = setInterval(()=>{
+        if(n<3){ els.bulbs[n].classList.add('lit'); n++; }
+        else { clearInterval(iv); setTimeout(resetGantry, 400); }
+      }, 700);
+    }
+    if (msg.type === 'light'){
+      els.bulbs[msg.lit-1].classList.add('lit');
+    }
+    if (msg.type === 'go'){
+      els.bulbs.forEach(b=>{b.classList.remove('lit'); b.classList.add('go');});
+      setTimeout(resetGantry, 900);
+    }
+    if (msg.type === 'false_start'){
+      setStatus('FALSE_START_TEMP', 'false_start');
+      resetGantry();
+    }
+    if (msg.type === 'dq'){
+      setStatus('DQ_TEMP', 'dq');
+    }
+    if (msg.type === 'timeout'){
+      setStatus('TIMEOUT_TEMP', 'timeout');
+    }
+
+    // timers
+    if (msg.remaining_ms !== undefined){
+      els.mainTimer.textContent = fmtCountdown(msg.remaining_ms);
+      els.mainTimer.className = 'value' + (msg.remaining_ms < 10000 ? ' crit' : msg.remaining_ms < 30000 ? ' warn' : '');
+    }
+    if (msg.elapsed_ms !== undefined){
+      els.robotTimer.textContent = fmtMs(msg.elapsed_ms);
+    }
+  };
+  ws.onclose = ()=> setTimeout(connect, 1500);
+  ws.onerror = ()=> ws.close();
+}
+connect();
+</script>
+</body>
+</html>

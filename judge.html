@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>หน้ากรรมการ — Judge Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --asphalt:#0B0E11; --panel:#151A20; --line:#242A31;
+    --red:#E0242C; --amber:#F5A623; --green:#17C964;
+    --text:#F5F5F0; --muted:#7C8896;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--asphalt); color:var(--text);
+    font-family:'Inter',sans-serif; min-height:100vh;
+    padding:3vh 3vw; display:grid; gap:2vh;
+    grid-template-columns: 1fr 1fr; grid-template-rows:auto auto;
+    grid-template-areas: "entry status" "actions result";
+  }
+  h1{
+    grid-column:1/-1; font-family:'Rajdhani',sans-serif; font-weight:700;
+    font-size:2.6vh; letter-spacing:2px; text-transform:uppercase; color:var(--muted);
+    margin:0 0 1vh 0; border-bottom:1px solid var(--line); padding-bottom:1.4vh;
+  }
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:2.4vh 2.4vw;
+  }
+  .card h2{
+    font-family:'Rajdhani',sans-serif; font-size:1.9vh; letter-spacing:2px;
+    text-transform:uppercase; color:var(--muted); margin:0 0 1.8vh 0;
+  }
+  #entryCard{grid-area:entry;}
+  #statusCard{grid-area:status;}
+  #actionsCard{grid-area:actions;}
+  #resultCard{grid-area:result;}
+
+  label{display:block; font-size:1.5vh; color:var(--muted); margin-bottom:0.4vh; text-transform:uppercase; letter-spacing:1px;}
+  input, select{
+    width:100%; padding:1.3vh 1.2vh; margin-bottom:1.4vh;
+    background:var(--asphalt); border:1px solid var(--line); border-radius:6px;
+    color:var(--text); font-size:1.9vh; font-family:'Inter',sans-serif;
+  }
+  input:focus, select:focus{outline:none; border-color:var(--amber);}
+
+  .mode-toggle{display:flex; gap:1vh; margin-bottom:1.4vh;}
+  .mode-toggle button{
+    flex:1; padding:1.2vh; border-radius:6px; border:1px solid var(--line);
+    background:var(--asphalt); color:var(--muted); font-family:'Rajdhani',sans-serif;
+    font-weight:700; letter-spacing:1px; cursor:pointer;
+  }
+  .mode-toggle button.active{background:var(--amber); color:var(--asphalt); border-color:var(--amber);}
+
+  button.action{
+    width:100%; padding:1.8vh; margin-bottom:1.2vh; border:none; border-radius:8px;
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:2.2vh; letter-spacing:2px;
+    text-transform:uppercase; cursor:pointer; transition:opacity .15s;
+  }
+  button.action:disabled{opacity:0.25; cursor:not-allowed;}
+  .btn-primary{background:var(--green); color:var(--asphalt);}
+  .btn-warn{background:var(--amber); color:var(--asphalt);}
+  .btn-danger{background:var(--red); color:var(--text);}
+  .btn-neutral{background:var(--line); color:var(--text);}
+
+  .state-line{display:flex; justify-content:space-between; padding:1vh 0; border-bottom:1px solid var(--line); font-size:2vh;}
+  .state-line:last-child{border-bottom:none;}
+  .state-line .k{color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-size:1.6vh;}
+  .state-line .v{font-family:'Rajdhani',sans-serif; font-weight:700;}
+  #stateValue{color:var(--amber);}
+
+  #resultCard .time{
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:6vh; text-align:center;
+    padding:1vh 0;
+  }
+  #resultCard .status-tag{
+    text-align:center; font-family:'Rajdhani',sans-serif; font-weight:700; letter-spacing:2px;
+    text-transform:uppercase; padding:0.6vh; border-radius:6px; margin-bottom:1.4vh;
+  }
+  .tag-finish{background:rgba(23,201,100,0.15); color:var(--green);}
+  .tag-dq, .tag-timeout, .tag-false_start{background:rgba(224,36,44,0.15); color:var(--red);}
+</style>
+</head>
+<body>
+  <h1>Judge Panel — Track 1</h1>
+
+  <div class="card" id="entryCard">
+    <h2>ข้อมูลผู้เข้าแข่งขัน</h2>
+    <div class="mode-toggle">
+      <button id="modeNormalBtn" class="active">รอบปกติ</button>
+      <button id="modeFinalBtn">รอบ Final (Top 4)</button>
+    </div>
+    <label>ชื่อผู้เข้าแข่งขัน</label>
+    <input id="fName" placeholder="ชื่อเด็ก">
+    <label>ทีม</label>
+    <input id="fTeam" placeholder="ชื่อทีม">
+    <label>รุ่น</label>
+    <input id="fDivision" placeholder="รุ่นเล็ก / รุ่นใหญ่">
+    <label>รอบที่วิ่ง (1-3)</label>
+    <select id="fRun"><option>1</option><option>2</option><option>3</option></select>
+    <button class="action btn-neutral" id="submitEntryBtn">บันทึกข้อมูลผู้เข้าแข่งขัน</button>
+  </div>
+
+  <div class="card" id="statusCard">
+    <h2>สถานะปัจจุบัน</h2>
+    <div class="state-line"><span class="k">Mode</span><span class="v" id="modeValue">normal</span></div>
+    <div class="state-line"><span class="k">State</span><span class="v" id="stateValue">IDLE</span></div>
+    <div class="state-line"><span class="k">ชื่อ / ทีม</span><span class="v" id="whoValue">-</span></div>
+    <div class="state-line"><span class="k">เวลาหลักคงเหลือ</span><span class="v" id="mainValue">3:00</span></div>
+    <div class="state-line"><span class="k">เวลาหุ่นยนต์</span><span class="v" id="robotValue">0.00</span></div>
+  </div>
+
+  <div class="card" id="actionsCard">
+    <h2>คำสั่งควบคุม</h2>
+    <button class="action btn-primary" id="startMainBtn">เริ่ม (รอบปกติ) — 3:00 + 3-2-1</button>
+    <button class="action btn-primary" id="startFinalBtn" style="display:none;">เริ่มไฟสัญญาณ (Final)</button>
+    <button class="action btn-danger" id="dqBtn">ปรับแพ้ (DQ)</button>
+    <button class="action btn-neutral" id="cancelBtn">ยกเลิก / รีเซ็ต (ไม่บันทึก)</button>
+  </div>
+
+  <div class="card" id="resultCard">
+    <h2>ผลรอบนี้ (ก่อนยืนยัน)</h2>
+    <div class="status-tag" id="resultTag">— ยังไม่มีผล —</div>
+    <div class="time" id="resultTime">-</div>
+    <button class="action btn-warn" id="confirmBtn">ยืนยันผล → บันทึกลงฐานข้อมูล</button>
+  </div>
+
+<script>
+const WS_URL = `ws://${location.hostname || "192.168.1.100"}:1880/ws/track`;
+const API = (path)=> `http://${location.hostname || "192.168.1.100"}:1880/api/${path}`;
+
+let currentState = 'IDLE';
+let currentMode = 'normal';
+let uiMode = 'normal'; // which panel the judge has selected (normal|final)
+let lastResult = null;
+
+const els = {
+  modeNormalBtn: document.getElementById('modeNormalBtn'),
+  modeFinalBtn: document.getElementById('modeFinalBtn'),
+  fName: document.getElementById('fName'),
+  fTeam: document.getElementById('fTeam'),
+  fDivision: document.getElementById('fDivision'),
+  fRun: document.getElementById('fRun'),
+  submitEntryBtn: document.getElementById('submitEntryBtn'),
+  modeValue: document.getElementById('modeValue'),
+  stateValue: document.getElementById('stateValue'),
+  whoValue: document.getElementById('whoValue'),
+  mainValue: document.getElementById('mainValue'),
+  robotValue: document.getElementById('robotValue'),
+  startMainBtn: document.getElementById('startMainBtn'),
+  startFinalBtn: document.getElementById('startFinalBtn'),
+  dqBtn: document.getElementById('dqBtn'),
+  cancelBtn: document.getElementById('cancelBtn'),
+  resultTag: document.getElementById('resultTag'),
+  resultTime: document.getElementById('resultTime'),
+  confirmBtn: document.getElementById('confirmBtn'),
+};
+
+function post(path, body){
+  fetch(API(path), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{})})
+    .catch(()=>console.warn('offline / node-red ไม่ตอบสนอง'));
+}
+
+els.modeNormalBtn.onclick = ()=>{
+  uiMode='normal'; els.modeNormalBtn.classList.add('active'); els.modeFinalBtn.classList.remove('active');
+  els.startMainBtn.style.display=''; els.startFinalBtn.style.display='none';
+};
+els.modeFinalBtn.onclick = ()=>{
+  uiMode='final'; els.modeFinalBtn.classList.add('active'); els.modeNormalBtn.classList.remove('active');
+  els.startMainBtn.style.display='none'; els.startFinalBtn.style.display='';
+};
+
+els.submitEntryBtn.onclick = ()=>{
+  post('entry', {name:els.fName.value, team:els.fTeam.value, division:els.fDivision.value, run:Number(els.fRun.value)});
+};
+els.startMainBtn.onclick = ()=> post('start-main');
+els.startFinalBtn.onclick = ()=> post('start-final');
+els.dqBtn.onclick = ()=> post('dq');
+els.cancelBtn.onclick = ()=> post('cancel');
+els.confirmBtn.onclick = ()=> post('confirm');
+
+// gate buttons by state (mirrors controller.py rules)
+function refreshButtons(){
+  const s = currentState;
+  els.startMainBtn.disabled = !(s === 'IDLE');
+  els.startFinalBtn.disabled = !(s === 'IDLE');
+  els.dqBtn.disabled = !['RACING','FINISH','FINAL_RACING','FINAL_FINISH'].includes(s);
+  els.confirmBtn.disabled = !['FINISH','FINAL_FINISH'].includes(s);
+}
+
+function fmtMs(ms){ return (ms/1000).toFixed(2); }
+function fmtCountdown(ms){
+  const total = Math.max(0, Math.round(ms/1000));
+  return `${Math.floor(total/60)}:${String(total%60).padStart(2,'0')}`;
+}
+
+function connect(){
+  const ws = new WebSocket(WS_URL);
+  ws.onmessage = (evt)=>{
+    let msg; try{ msg = JSON.parse(evt.data); }catch(e){ return; }
+
+    if (msg.state !== undefined){
+      currentState = msg.state; currentMode = msg.mode;
+      els.stateValue.textContent = msg.state;
+      els.modeValue.textContent = msg.mode;
+      els.whoValue.textContent = `${msg.name||'-'} / ${msg.team||'-'}`;
+      refreshButtons();
+      if (msg.state === 'IDLE'){
+        els.resultTag.textContent = '— ยังไม่มีผล —';
+        els.resultTag.className = 'status-tag';
+        els.resultTime.textContent = '-';
+      }
+    }
+    if (msg.remaining_ms !== undefined) els.mainValue.textContent = fmtCountdown(msg.remaining_ms);
+    if (msg.elapsed_ms !== undefined) els.robotValue.textContent = fmtMs(msg.elapsed_ms);
+
+    // result preview arrives on a companion channel /ws/judge in the real
+    // deployment; for a single-socket demo we also accept it here if present
+    if (msg.status !== undefined && msg.time_ms !== undefined){
+      lastResult = msg;
+      els.resultTime.textContent = fmtMs(msg.time_ms);
+      els.resultTag.textContent = msg.status.toUpperCase();
+      els.resultTag.className = 'status-tag tag-' + msg.status;
+    }
+  };
+  ws.onclose = ()=> setTimeout(connect, 1500);
+  ws.onerror = ()=> ws.close();
+}
+connect();
+refreshButtons();
+</script>
+</body>
+</html>

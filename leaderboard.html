@@ -1,124 +1,126 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <title>Central Leaderboard</title>
+<meta charset="UTF-8">
+<title>Leaderboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --asphalt:#0B0E11; --panel:#14181D; --line:#242A31;
+    --red:#E0242C; --amber:#F5A623; --green:#17C964; --gold:#D4AF37; --silver:#C7CCD1; --bronze:#B0793C;
+    --text:#F5F5F0; --muted:#7C8896;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--asphalt); color:var(--text); font-family:'Inter',sans-serif;
+    height:100vh; padding:3vh 5vw; display:flex; flex-direction:column;
+  }
+  .flag-strip{
+    height:1.4vh; width:100%;
+    background: repeating-linear-gradient(90deg, var(--text) 0 2vh, var(--asphalt) 2vh 4vh);
+    opacity:0.9; margin-bottom:2vh; border-radius:2px;
+  }
+  header{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2.5vh;}
+  header h1{
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:5vh; letter-spacing:2px; text-transform:uppercase;
+  }
+  header .division{
+    font-size:2.2vh; color:var(--amber); text-transform:uppercase; letter-spacing:3px;
+  }
+  .list{
+    flex:1; display:flex; flex-direction:column; gap:1.4vh; position:relative;
+  }
+  .row{
+    display:grid; grid-template-columns: 8vw 1fr auto; align-items:center;
+    gap:2vw; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:1.6vh 2.4vw;
+    transition: transform .6s cubic-bezier(.2,.8,.2,1), background .3s;
+  }
+  .row.rank-1{border-color:var(--gold);}
+  .row.rank-2{border-color:var(--silver);}
+  .row.rank-3{border-color:var(--bronze);}
+  .rank{
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:4.5vh; color:var(--muted); text-align:center;
+  }
+  .row.rank-1 .rank{color:var(--gold);}
+  .row.rank-2 .rank{color:var(--silver);}
+  .row.rank-3 .rank{color:var(--bronze);}
+  .team{
+    font-family:'Rajdhani',sans-serif; font-weight:600; font-size:3.2vh;
+  }
+  .time{
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:4vh;
+    font-variant-numeric:tabular-nums; color:var(--green);
+  }
+  .row.flash{ background: rgba(23,201,100,0.12); }
+  footer{
+    margin-top:2vh; text-align:center; color:var(--muted); font-size:1.6vh;
+    letter-spacing:2px; text-transform:uppercase;
+  }
+</style>
 </head>
-<body style="background-color: #111; color: white; font-family: sans-serif; text-align: center; padding: 20px;">
+<body>
+  <div class="flag-strip"></div>
+  <header>
+    <h1>Leaderboard</h1>
+    <div class="division" id="divisionLabel">รุ่นเล็ก</div>
+  </header>
+  <div class="list" id="list"></div>
+  <footer>Line Tracking Championship — Best time per team</footer>
 
-    <h1>📊 Central Arena Display (จอกลางงาน)</h1>
-    <h3 style="color: #888;">โหมดปัจจุบัน: <span id="mode-text">กำลังโหลด...</span></h3>
-    <hr style="border-color: #333;">
+<script>
+const WS_URL = `ws://${location.hostname || "192.168.1.100"}:1880/ws/leaderboard`;
+const listEl = document.getElementById('list');
+const divisionLabel = document.getElementById('divisionLabel');
 
-    <div id="panel-ranking" style="display: none;">
-        <h2>🏆 TOP SPEED RANKING LEADERBOARD</h2>
-        <table border="1" style="margin: 0 auto; width: 60%; color: white; border-color: #333; font-size: 20px;" cellpadding="10">
-            <tr style="background-color: #222;">
-                <th>อันดับ</th><th>รหัสผู้แข่งขัน</th><th>เวลาที่ดีที่สุด</th>
-            </tr>
-            <tbody id="leaderboard-rows">
-                <tr><td>1</td><td>105</td><td>4.120 วินาที</td></tr>
-                <tr><td>2</td><td>102</td><td>4.455 วินาที</td></tr>
-                <tr><td>3</td><td>109</td><td>5.012 วินาที</td></tr>
-            </tbody>
-        </table>
-    </div>
+function fmtMs(ms){ return (ms/1000).toFixed(2) + 's'; }
 
-    <div id="panel-knockout" style="display: none;">
-        <h2>⚔️ KNOCKOUT DOUBLE DUEL</h2>
-        <div style="display: flex; justify-content: space-around; margin-top: 40px;">
-            <div id="box-f1" style="width: 45%; border: 4px solid #333; padding: 20px; background-color: #1a1a2e;">
-                <h2>🟦 FIELD 1</h2>
-                <h1 id="time-f1" style="font-size: 80px; margin: 10px 0;">0.000</h1>
-                <h3 id="status-f1">IDLE</h3>
-            </div>
-            <div id="box-f2" style="width: 45%; border: 4px solid #333; padding: 20px; background-color: #2e1a1a;">
-                <h2>🟥 FIELD 2</h2>
-                <h1 id="time-f2" style="font-size: 80px; margin: 10px 0;">0.000</h1>
-                <h3 id="status-f2">IDLE</h3>
-            </div>
-        </div>
-        <h1 id="winner-banner" style="color: gold; font-size: 50px; margin-top: 30px;"></h1>
-    </div>
+// standings: array of {team, division, best_time_ms, rank}
+function render(standings){
+  if (!standings.length) return;
+  divisionLabel.textContent = standings[0].division || '';
 
-    <script>
-        const wsUrl = "ws://" + window.location.hostname + ":1880/ws/competition";
-        let ws;
-        let t1 = 0, t2 = 0;
-        let f1Done = false, f2Done = false;
+  const existing = new Map([...listEl.children].map(r => [r.dataset.team, r]));
 
-        function connectWS() {
-            ws = new WebSocket(wsUrl);
+  standings.forEach((entry, idx) => {
+    let row = existing.get(entry.team_name || entry.team);
+    const isNew = !row;
+    if (isNew){
+      row = document.createElement('div');
+      row.className = 'row';
+      row.dataset.team = entry.team_name || entry.team;
+      row.innerHTML = `<div class="rank"></div><div class="team"></div><div class="time"></div>`;
+      listEl.appendChild(row);
+    }
+    row.className = `row rank-${idx+1}`;
+    row.style.order = idx;
+    row.querySelector('.rank').textContent = idx+1;
+    row.querySelector('.team').textContent = entry.team_name || entry.team;
+    row.querySelector('.time').textContent = fmtMs(entry.best_time_ms);
+    if (!isNew){
+      row.classList.add('flash');
+      setTimeout(()=>row.classList.remove('flash'), 700);
+    }
+  });
 
-            ws.onmessage = (event) => {
-                const msg = JSON.parse(event.data);
+  listEl.style.display = 'flex';
+  listEl.style.flexDirection = 'column';
+}
 
-                // ดักรับคำสั่งเปลี่ยนโครงหน้าจอจากบอร์ดกลางแอดมิน
-                if (msg.action === "ui_mode_change" || msg.action === "force_redirect") {
-                    const targetMode = msg.mode || msg.target;
-                    switchView(targetMode);
-                }
-
-                // อัปเดตเวลาวิ่งคู่ขนานรอบแบทเทิล
-                if (msg.action === "ui_state_update") {
-                    if (msg.field === "field1") {
-                        document.getElementById("status-f1").innerText = msg.status;
-                        if(msg.lap_time) {
-                            t1 = parseFloat(msg.lap_time);
-                            document.getElementById("time-f1").innerText = t1.toFixed(3);
-                            if(msg.status === "FINISHED") f1Done = true;
-                        }
-                    }
-                    if (msg.field === "field2") {
-                        document.getElementById("status-f2").innerText = msg.status;
-                        if(msg.lap_time) {
-                            t2 = parseFloat(msg.lap_time);
-                            document.getElementById("time-f2").innerText = t2.toFixed(3);
-                            if(msg.status === "FINISHED") f2Done = true;
-                        }
-                    }
-
-                    if(f1Done && f2Done) { checkWinner(); }
-                }
-            };
-            ws.onclose = () => { setTimeout(connectWS, 2000); };
-        }
-
-        function switchView(mode) {
-            document.getElementById("mode-text").innerText = mode.toUpperCase();
-            if(mode === "ranking") {
-                document.getElementById("panel-ranking").style.display = "block";
-                document.getElementById("panel-knockout").style.display = "none";
-            } else {
-                document.getElementById("panel-ranking").style.display = "none";
-                document.getElementById("panel-knockout").style.display = "block";
-                resetKO();
-            }
-        }
-
-        function checkWinner() {
-            const banner = document.getElementById("winner-banner");
-            if(t1 < t2) {
-                banner.innerText = "🏆 FIELD 1 WIN!!! ⭐";
-                document.getElementById("box-f1").style.borderColor = "gold";
-            } else if(t2 < t1) {
-                banner.innerText = "🏆 FIELD 2 WIN!!! ⭐";
-                document.getElementById("box-f2").style.borderColor = "gold";
-            } else {
-                banner.innerText = "DRAW (เวลาเท่ากัน)";
-            }
-        }
-
-        function resetKO() {
-            t1 = 0; t2 = 0; f1Done = false; f2Done = false;
-            document.getElementById("time-f1").innerText = "0.000";
-            document.getElementById("time-f2").innerText = "0.000";
-            document.getElementById("winner-banner").innerText = "";
-            document.getElementById("box-f1").style.borderColor = "#333";
-            document.getElementById("box-f2").style.borderColor = "#333";
-        }
-
-        connectWS();
-    </script>
+function connect(){
+  const ws = new WebSocket(WS_URL);
+  ws.onmessage = (evt)=>{
+    try{
+      const standings = JSON.parse(evt.data);
+      if (Array.isArray(standings)) render(standings);
+    }catch(e){}
+  };
+  ws.onclose = ()=> setTimeout(connect, 1500);
+  ws.onerror = ()=> ws.close();
+}
+connect();
+</script>
 </body>
 </html>
