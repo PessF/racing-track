@@ -2,234 +2,185 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>หน้ากรรมการ — Judge Panel</title>
+<title>หน้ากรรมการ — Gate Control</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --asphalt:#0B0E11; --panel:#151A20; --line:#242A31;
-    --red:#E0242C; --amber:#F5A623; --green:#17C964;
-    --text:#F5F5F0; --muted:#7C8896;
-  }
+  :root{--bg:#0f1420;--panel:#161d2c;--line:#26314a;--ink:#eef2f8;--dim:#8892a6;
+        --accent:#4d8dff;--green:#28e07a;--red:#ff4d4d;--amber:#ffb020;}
   *{box-sizing:border-box;}
-  body{
-    margin:0; background:var(--asphalt); color:var(--text);
-    font-family:'Inter',sans-serif; min-height:100vh;
-    padding:3vh 3vw; display:grid; gap:2vh;
-    grid-template-columns: 1fr 1fr; grid-template-rows:auto auto;
-    grid-template-areas: "entry status" "actions result";
-  }
-  h1{
-    grid-column:1/-1; font-family:'Rajdhani',sans-serif; font-weight:700;
-    font-size:2.6vh; letter-spacing:2px; text-transform:uppercase; color:var(--muted);
-    margin:0 0 1vh 0; border-bottom:1px solid var(--line); padding-bottom:1.4vh;
-  }
-  .card{
-    background:var(--panel); border:1px solid var(--line); border-radius:10px;
-    padding:2.4vh 2.4vw;
-  }
-  .card h2{
-    font-family:'Rajdhani',sans-serif; font-size:1.9vh; letter-spacing:2px;
-    text-transform:uppercase; color:var(--muted); margin:0 0 1.8vh 0;
-  }
-  #entryCard{grid-area:entry;}
-  #statusCard{grid-area:status;}
-  #actionsCard{grid-area:actions;}
-  #resultCard{grid-area:result;}
-
-  label{display:block; font-size:1.5vh; color:var(--muted); margin-bottom:0.4vh; text-transform:uppercase; letter-spacing:1px;}
-  input, select{
-    width:100%; padding:1.3vh 1.2vh; margin-bottom:1.4vh;
-    background:var(--asphalt); border:1px solid var(--line); border-radius:6px;
-    color:var(--text); font-size:1.9vh; font-family:'Inter',sans-serif;
-  }
-  input:focus, select:focus{outline:none; border-color:var(--amber);}
-
-  .mode-toggle{display:flex; gap:1vh; margin-bottom:1.4vh;}
-  .mode-toggle button{
-    flex:1; padding:1.2vh; border-radius:6px; border:1px solid var(--line);
-    background:var(--asphalt); color:var(--muted); font-family:'Rajdhani',sans-serif;
-    font-weight:700; letter-spacing:1px; cursor:pointer;
-  }
-  .mode-toggle button.active{background:var(--amber); color:var(--asphalt); border-color:var(--amber);}
-
-  button.action{
-    width:100%; padding:1.8vh; margin-bottom:1.2vh; border:none; border-radius:8px;
-    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:2.2vh; letter-spacing:2px;
-    text-transform:uppercase; cursor:pointer; transition:opacity .15s;
-  }
-  button.action:disabled{opacity:0.25; cursor:not-allowed;}
-  .btn-primary{background:var(--green); color:var(--asphalt);}
-  .btn-warn{background:var(--amber); color:var(--asphalt);}
-  .btn-danger{background:var(--red); color:var(--text);}
-  .btn-neutral{background:var(--line); color:var(--text);}
-
-  .state-line{display:flex; justify-content:space-between; padding:1vh 0; border-bottom:1px solid var(--line); font-size:2vh;}
-  .state-line:last-child{border-bottom:none;}
-  .state-line .k{color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-size:1.6vh;}
-  .state-line .v{font-family:'Rajdhani',sans-serif; font-weight:700;}
-  #stateValue{color:var(--amber);}
-
-  #resultCard .time{
-    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:6vh; text-align:center;
-    padding:1vh 0;
-  }
-  #resultCard .status-tag{
-    text-align:center; font-family:'Rajdhani',sans-serif; font-weight:700; letter-spacing:2px;
-    text-transform:uppercase; padding:0.6vh; border-radius:6px; margin-bottom:1.4vh;
-  }
-  .tag-finish{background:rgba(23,201,100,0.15); color:var(--green);}
-  .tag-dq, .tag-timeout, .tag-false_start{background:rgba(224,36,44,0.15); color:var(--red);}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',Tahoma,sans-serif;
+       padding:20px;max-width:640px;margin:0 auto;}
+  h1{font-size:20px;margin:0 0 4px;}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:20px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+        padding:18px;margin-bottom:16px;}
+  .card h2{font-size:14px;margin:0 0 12px;color:var(--dim);text-transform:uppercase;
+            letter-spacing:.08em;}
+  label{display:block;font-size:13px;color:var(--dim);margin:10px 0 4px;}
+  input,select{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);
+        background:#0c1120;color:var(--ink);font-size:15px;}
+  .row{display:flex;gap:10px;}
+  .row>*{flex:1;}
+  .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+  button{flex:1;min-width:130px;padding:14px 10px;border:none;border-radius:10px;
+        font-size:14px;font-weight:700;cursor:pointer;color:#08101f;}
+  button:disabled{opacity:.35;cursor:not-allowed;}
+  .b-primary{background:var(--accent);color:#fff;}
+  .b-green{background:var(--green);}
+  .b-red{background:var(--red);color:#fff;}
+  .b-amber{background:var(--amber);}
+  .b-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
+  .status{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .pill{padding:6px 14px;border-radius:999px;font-weight:700;font-size:13px;border:1px solid var(--line);}
+  .modeSwitch{display:flex;gap:8px;margin-bottom:16px;}
+  .modeSwitch button{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--ink);}
+  .modeSwitch button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .field{margin-top:6px;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .hidden{display:none;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+         background:#1f2a40;border:1px solid var(--line);padding:10px 18px;border-radius:10px;
+         font-size:13px;opacity:0;transition:opacity .2s;}
+  .toast.show{opacity:1;}
 </style>
 </head>
 <body>
-  <h1>Judge Panel — Track 1</h1>
+  <h1>หน้ากรรมการ</h1>
+  <div class="sub">เชื่อมกับ Pi5 ผ่าน WebSocket — เชื่อมสถานะ real-time</div>
 
-  <div class="card" id="entryCard">
-    <h2>ข้อมูลผู้เข้าแข่งขัน</h2>
-    <div class="mode-toggle">
-      <button id="modeNormalBtn" class="active">รอบปกติ</button>
-      <button id="modeFinalBtn">รอบ Final (Top 4)</button>
+  <div class="modeSwitch">
+    <button id="modeNormalBtn" class="active" onclick="setMode('normal')">รอบคัดเลือก (Normal)</button>
+    <button id="modeFinalBtn" onclick="setMode('final')">รอบ Final (Top4)</button>
+  </div>
+
+  <div class="card">
+    <div class="status">
+      <span>สถานะปัจจุบัน</span>
+      <span class="pill" id="statePill">IDLE</span>
     </div>
-    <label>ชื่อผู้เข้าแข่งขัน</label>
-    <input id="fName" placeholder="ชื่อเด็ก">
-    <label>ทีม</label>
-    <input id="fTeam" placeholder="ชื่อทีม">
-    <label>รุ่น</label>
-    <input id="fDivision" placeholder="รุ่นเล็ก / รุ่นใหญ่">
-    <label>รอบที่วิ่ง (1-3)</label>
-    <select id="fRun"><option>1</option><option>2</option><option>3</option></select>
-    <button class="action btn-neutral" id="submitEntryBtn">บันทึกข้อมูลผู้เข้าแข่งขัน</button>
+    <div>ผู้เข้าแข่งขัน: <b id="curName">-</b> / <span id="curTeam">-</span></div>
+    <div class="row" style="margin-top:8px;">
+      <div class="field">เวลาหลัก: <span id="curMain">3:00</span></div>
+      <div class="field">เวลาหุ่น: <span id="curRobot">-</span></div>
+    </div>
   </div>
 
-  <div class="card" id="statusCard">
-    <h2>สถานะปัจจุบัน</h2>
-    <div class="state-line"><span class="k">Mode</span><span class="v" id="modeValue">normal</span></div>
-    <div class="state-line"><span class="k">State</span><span class="v" id="stateValue">IDLE</span></div>
-    <div class="state-line"><span class="k">ชื่อ / ทีม</span><span class="v" id="whoValue">-</span></div>
-    <div class="state-line"><span class="k">เวลาหลักคงเหลือ</span><span class="v" id="mainValue">3:00</span></div>
-    <div class="state-line"><span class="k">เวลาหุ่นยนต์</span><span class="v" id="robotValue">0.00</span></div>
+  <!-- NORMAL MODE PANEL -->
+  <div class="card" id="normalPanel">
+    <h2>ลงทะเบียนผู้เข้าแข่งขัน (รอบคัดเลือก)</h2>
+    <label>ชื่อเด็ก</label><input id="f_child" placeholder="เช่น น้องพีพี">
+    <div class="row">
+      <div><label>ชื่อทีม</label><input id="f_team" placeholder="เช่น Robo Kids"></div>
+      <div><label>รุ่น</label><input id="f_class" placeholder="เช่น รุ่นเล็ก" value="รุ่นทั่วไป"></div>
+    </div>
+    <label>รอบที่วิ่ง</label>
+    <select id="f_round"><option value="1">รอบ 1</option><option value="2">รอบ 2</option><option value="3">รอบ 3</option></select>
+    <div class="btns">
+      <button class="b-primary" onclick="setRacer()">บันทึกชื่อ</button>
+      <button class="b-green" onclick="cmd('start_timer')">เริ่มนับ 3-2-1 + 3 นาที</button>
+    </div>
+    <div class="btns">
+      <button class="b-red" onclick="cmd('dq')">ปรับแพ้ (DQ)</button>
+      <button class="b-primary" onclick="cmd('confirm')">ยืนยันผล → บันทึก DB</button>
+      <button class="b-ghost" onclick="cmd('reset')">Reset ฉุกเฉิน</button>
+    </div>
   </div>
 
-  <div class="card" id="actionsCard">
-    <h2>คำสั่งควบคุม</h2>
-    <button class="action btn-primary" id="startMainBtn">เริ่ม (รอบปกติ) — 3:00 + 3-2-1</button>
-    <button class="action btn-primary" id="startFinalBtn" style="display:none;">เริ่มไฟสัญญาณ (Final)</button>
-    <button class="action btn-danger" id="dqBtn">ปรับแพ้ (DQ)</button>
-    <button class="action btn-neutral" id="cancelBtn">ยกเลิก / รีเซ็ต (ไม่บันทึก)</button>
+  <!-- FINAL MODE PANEL -->
+  <div class="card hidden" id="finalPanel">
+    <h2>รอบ Final — Top 4</h2>
+    <label>ชื่อเด็ก</label><input id="ff_child" placeholder="เช่น น้องพีพี">
+    <div class="row">
+      <div><label>ชื่อทีม</label><input id="ff_team"></div>
+      <div><label>อันดับที่เข้ารอบ (seed)</label><input id="ff_seed" type="number" min="1" max="4"></div>
+    </div>
+    <div class="btns">
+      <button class="b-primary" onclick="setFinalPair()">บันทึกคู่แข่ง</button>
+      <button class="b-green" onclick="cmd('start_lights')">เริ่มไฟสัญญาณ (F1 Start)</button>
+    </div>
+    <div class="btns">
+      <button class="b-red" onclick="cmd('dq')">ปรับแพ้ (RACING/FINISH)</button>
+      <button class="b-amber" onclick="cmd('yellow_card')">ใบเหลือง (False Start → วิ่งใหม่)</button>
+      <button class="b-red" onclick="cmd('dq_final')">DQ (False Start ครั้งที่ 2)</button>
+    </div>
+    <div class="btns">
+      <button class="b-primary" onclick="cmd('confirm')">ยืนยันผล → บันทึก DB</button>
+      <button class="b-ghost" onclick="cmd('reset')">Reset ฉุกเฉิน</button>
+    </div>
   </div>
 
-  <div class="card" id="resultCard">
-    <h2>ผลรอบนี้ (ก่อนยืนยัน)</h2>
-    <div class="status-tag" id="resultTag">— ยังไม่มีผล —</div>
-    <div class="time" id="resultTime">-</div>
-    <button class="action btn-warn" id="confirmBtn">ยืนยันผล → บันทึกลงฐานข้อมูล</button>
-  </div>
+  <div class="toast" id="toast"></div>
 
 <script>
-const WS_URL = `ws://${location.hostname || "192.168.1.100"}:1880/ws/track`;
-const API = (path)=> `http://${location.hostname || "192.168.1.100"}:1880/api/${path}`;
-
-let currentState = 'IDLE';
-let currentMode = 'normal';
-let uiMode = 'normal'; // which panel the judge has selected (normal|final)
-let lastResult = null;
-
-const els = {
-  modeNormalBtn: document.getElementById('modeNormalBtn'),
-  modeFinalBtn: document.getElementById('modeFinalBtn'),
-  fName: document.getElementById('fName'),
-  fTeam: document.getElementById('fTeam'),
-  fDivision: document.getElementById('fDivision'),
-  fRun: document.getElementById('fRun'),
-  submitEntryBtn: document.getElementById('submitEntryBtn'),
-  modeValue: document.getElementById('modeValue'),
-  stateValue: document.getElementById('stateValue'),
-  whoValue: document.getElementById('whoValue'),
-  mainValue: document.getElementById('mainValue'),
-  robotValue: document.getElementById('robotValue'),
-  startMainBtn: document.getElementById('startMainBtn'),
-  startFinalBtn: document.getElementById('startFinalBtn'),
-  dqBtn: document.getElementById('dqBtn'),
-  cancelBtn: document.getElementById('cancelBtn'),
-  resultTag: document.getElementById('resultTag'),
-  resultTime: document.getElementById('resultTime'),
-  confirmBtn: document.getElementById('confirmBtn'),
-};
-
-function post(path, body){
-  fetch(API(path), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{})})
-    .catch(()=>console.warn('offline / node-red ไม่ตอบสนอง'));
-}
-
-els.modeNormalBtn.onclick = ()=>{
-  uiMode='normal'; els.modeNormalBtn.classList.add('active'); els.modeFinalBtn.classList.remove('active');
-  els.startMainBtn.style.display=''; els.startFinalBtn.style.display='none';
-};
-els.modeFinalBtn.onclick = ()=>{
-  uiMode='final'; els.modeFinalBtn.classList.add('active'); els.modeNormalBtn.classList.remove('active');
-  els.startMainBtn.style.display='none'; els.startFinalBtn.style.display='';
-};
-
-els.submitEntryBtn.onclick = ()=>{
-  post('entry', {name:els.fName.value, team:els.fTeam.value, division:els.fDivision.value, run:Number(els.fRun.value)});
-};
-els.startMainBtn.onclick = ()=> post('start-main');
-els.startFinalBtn.onclick = ()=> post('start-final');
-els.dqBtn.onclick = ()=> post('dq');
-els.cancelBtn.onclick = ()=> post('cancel');
-els.confirmBtn.onclick = ()=> post('confirm');
-
-// gate buttons by state (mirrors controller.py rules)
-function refreshButtons(){
-  const s = currentState;
-  els.startMainBtn.disabled = !(s === 'IDLE');
-  els.startFinalBtn.disabled = !(s === 'IDLE');
-  els.dqBtn.disabled = !['RACING','FINISH','FINAL_RACING','FINAL_FINISH'].includes(s);
-  els.confirmBtn.disabled = !['FINISH','FINAL_FINISH'].includes(s);
-}
-
-function fmtMs(ms){ return (ms/1000).toFixed(2); }
-function fmtCountdown(ms){
-  const total = Math.max(0, Math.round(ms/1000));
-  return `${Math.floor(total/60)}:${String(total%60).padStart(2,'0')}`;
-}
+const WS_URL = `ws://${location.hostname}:1880/ws/gate`;
+let ws, curMode = "normal";
 
 function connect(){
-  const ws = new WebSocket(WS_URL);
-  ws.onmessage = (evt)=>{
-    let msg; try{ msg = JSON.parse(evt.data); }catch(e){ return; }
-
-    if (msg.state !== undefined){
-      currentState = msg.state; currentMode = msg.mode;
-      els.stateValue.textContent = msg.state;
-      els.modeValue.textContent = msg.mode;
-      els.whoValue.textContent = `${msg.name||'-'} / ${msg.team||'-'}`;
-      refreshButtons();
-      if (msg.state === 'IDLE'){
-        els.resultTag.textContent = '— ยังไม่มีผล —';
-        els.resultTag.className = 'status-tag';
-        els.resultTime.textContent = '-';
-      }
-    }
-    if (msg.remaining_ms !== undefined) els.mainValue.textContent = fmtCountdown(msg.remaining_ms);
-    if (msg.elapsed_ms !== undefined) els.robotValue.textContent = fmtMs(msg.elapsed_ms);
-
-    // result preview arrives on a companion channel /ws/judge in the real
-    // deployment; for a single-socket demo we also accept it here if present
-    if (msg.status !== undefined && msg.time_ms !== undefined){
-      lastResult = msg;
-      els.resultTime.textContent = fmtMs(msg.time_ms);
-      els.resultTag.textContent = msg.status.toUpperCase();
-      els.resultTag.className = 'status-tag tag-' + msg.status;
-    }
+  ws = new WebSocket(WS_URL);
+  ws.onopen = ()=> toast("เชื่อมต่อแล้ว");
+  ws.onmessage = (ev)=>{
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "state") render(msg.data);
   };
-  ws.onclose = ()=> setTimeout(connect, 1500);
-  ws.onerror = ()=> ws.close();
+  ws.onclose = ()=>{ toast("หลุดการเชื่อมต่อ กำลังต่อใหม่…"); setTimeout(connect, 1500); };
 }
 connect();
-refreshButtons();
+
+function send(obj){
+  if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+  else toast("ยังไม่เชื่อมต่อ");
+}
+function cmd(action, extra={}){ send({action, ...extra}); }
+
+function setMode(m){
+  curMode = m;
+  document.getElementById('modeNormalBtn').classList.toggle('active', m==='normal');
+  document.getElementById('modeFinalBtn').classList.toggle('active', m==='final');
+  document.getElementById('normalPanel').classList.toggle('hidden', m!=='normal');
+  document.getElementById('finalPanel').classList.toggle('hidden', m!=='final');
+  cmd('set_mode', {mode:m});
+}
+
+function setRacer(){
+  cmd('set_racer', {
+    child_name: document.getElementById('f_child').value.trim(),
+    team_name: document.getElementById('f_team').value.trim(),
+    class_name: document.getElementById('f_class').value.trim() || "รุ่นทั่วไป",
+    round_no: parseInt(document.getElementById('f_round').value, 10),
+  });
+  toast("บันทึกชื่อแล้ว — กด 'เริ่มนับ 3-2-1' ได้เลย");
+}
+
+function setFinalPair(){
+  cmd('set_final_pair', {
+    child_name: document.getElementById('ff_child').value.trim(),
+    team_name: document.getElementById('ff_team').value.trim(),
+    seed_rank: parseInt(document.getElementById('ff_seed').value, 10),
+  });
+  toast("บันทึกคู่แข่งแล้ว — กด 'เริ่มไฟสัญญาณ' เมื่อพร้อม");
+}
+
+function fmtMs(ms){ return (ms===null||ms===undefined) ? "-" : (ms/1000).toFixed(2); }
+function fmtMain(ms){
+  if (ms===null||ms===undefined) return "3:00";
+  const t = Math.max(0, Math.ceil(ms/1000));
+  return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;
+}
+
+function render(d){
+  document.getElementById('statePill').textContent = `${d.mode.toUpperCase()} / ${d.state}`;
+  document.getElementById('curName').textContent = d.child_name || "-";
+  document.getElementById('curTeam').textContent = [d.team_name, d.class_name].filter(Boolean).join(" • ") || "-";
+  document.getElementById('curMain').textContent = d.mode==='normal' ? fmtMain(d.main_timer_ms) : "—";
+  document.getElementById('curRobot').textContent = fmtMs(d.robot_timer_ms);
+}
+
+let toastTimer;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 2200);
+}
 </script>
 </body>
 </html>

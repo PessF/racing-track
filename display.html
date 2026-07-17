@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>จอสนาม — Gate Display</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#121826; --line:#1e2636;
+    --amber:#ffb020; --red:#ff3b3b; --green:#28e07a; --ink:#f2f5fa; --dim:#6b7688;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Segoe UI',Tahoma,sans-serif;overflow:hidden;}
+  .wrap{height:100vh;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:24px;padding:24px;text-align:center;}
+  .names{font-size:5vw;font-weight:800;letter-spacing:.02em;}
+  .team{font-size:2.2vw;color:var(--dim);font-weight:600;}
+  .timers{display:flex;gap:6vw;align-items:flex-end;}
+  .timer-block{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .timer-label{font-size:1.6vw;color:var(--dim);text-transform:uppercase;letter-spacing:.15em;}
+  .timer-value{font-size:11vw;font-weight:900;font-variant-numeric:tabular-nums;
+    line-height:1;text-shadow:0 0 40px rgba(255,255,255,.08);}
+  .main-timer.warn{color:var(--amber);}
+  .main-timer.danger{color:var(--red);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .robot-timer{color:var(--green);}
+  .state-badge{font-size:2vw;padding:10px 28px;border-radius:999px;
+    border:2px solid var(--line);letter-spacing:.1em;font-weight:700;}
+  .state-IDLE{color:var(--dim);}
+  .state-WAITING{color:var(--amber);}
+  .state-READY{color:#5ac8ff;}
+  .state-RACING{color:var(--green);}
+  .state-FINISH{color:#c084fc;}
+  .state-TIMEOUT,.state-DQ,.state-FALSE_START{color:var(--red);}
+  .countdown-overlay{position:fixed;inset:0;display:none;align-items:center;
+    justify-content:center;background:rgba(0,0,0,.85);font-size:30vw;font-weight:900;
+    color:var(--amber);z-index:10;}
+  .lights{display:flex;gap:2vw;margin-top:12px;}
+  .bulb{width:6vw;height:6vw;border-radius:50%;background:#2a1010;
+    border:.6vw solid #3a1414;transition:background .15s;}
+  .bulb.on{background:var(--red);box-shadow:0 0 5vw rgba(255,59,59,.7);}
+  .bulb.go{background:var(--green)!important;box-shadow:0 0 6vw rgba(40,224,122,.8)!important;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+  <div class="countdown-overlay" id="countdownOverlay">3</div>
+
+  <div class="wrap">
+    <div>
+      <div class="names" id="childName">รอผู้เข้าแข่งขัน…</div>
+      <div class="team" id="teamName">&nbsp;</div>
+    </div>
+
+    <div class="state-badge" id="stateBadge">IDLE</div>
+
+    <!-- Normal mode -->
+    <div class="timers" id="normalTimers">
+      <div class="timer-block">
+        <div class="timer-label">เวลาหลัก 3 นาที</div>
+        <div class="timer-value main-timer" id="mainTimer">3:00</div>
+      </div>
+      <div class="timer-block">
+        <div class="timer-label">เวลาหุ่นวิ่ง</div>
+        <div class="timer-value robot-timer" id="robotTimer">0.00</div>
+      </div>
+    </div>
+
+    <!-- Final mode: F1 lights -->
+    <div id="finalPanel" class="hidden">
+      <div class="lights" id="lights">
+        <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+        <div class="bulb"></div><div class="bulb"></div>
+      </div>
+      <div class="timer-block" style="margin-top:20px;">
+        <div class="timer-label">เวลาหุ่นวิ่ง</div>
+        <div class="timer-value robot-timer" id="robotTimerFinal">0.00</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const WS_URL = `ws://${location.hostname}:1880/ws/gate`;
+let ws;
+function connect(){
+  ws = new WebSocket(WS_URL);
+  ws.onmessage = (ev)=>{
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "state") render(msg.data);
+  };
+  ws.onclose = ()=> setTimeout(connect, 1500);
+}
+connect();
+
+function fmtMs(ms){
+  if (ms === null || ms === undefined) return "--.--";
+  const s = ms/1000;
+  return s.toFixed(2);
+}
+function fmtMainMs(ms){
+  if (ms === null || ms === undefined) return "3:00";
+  const totalSec = Math.max(0, Math.ceil(ms/1000));
+  const m = Math.floor(totalSec/60), s = totalSec%60;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+let lastCountdown = null;
+function render(d){
+  document.getElementById('childName').textContent = d.child_name || "รอผู้เข้าแข่งขัน…";
+  document.getElementById('teamName').textContent =
+    [d.team_name, d.class_name].filter(Boolean).join(" • ") || "\u00A0";
+
+  const badge = document.getElementById('stateBadge');
+  badge.textContent = d.state;
+  badge.className = "state-badge state-" + d.state;
+
+  const isFinal = d.mode === "final";
+  document.getElementById('normalTimers').classList.toggle('hidden', isFinal);
+  document.getElementById('finalPanel').classList.toggle('hidden', !isFinal);
+
+  if (!isFinal){
+    const mt = document.getElementById('mainTimer');
+    mt.textContent = fmtMainMs(d.main_timer_ms);
+    mt.className = "timer-value main-timer";
+    if (d.main_timer_ms !== null && d.main_timer_ms <= 30000) mt.classList.add("danger");
+    else if (d.main_timer_ms !== null && d.main_timer_ms <= 60000) mt.classList.add("warn");
+    document.getElementById('robotTimer').textContent = fmtMs(d.robot_timer_ms);
+  } else {
+    document.getElementById('robotTimerFinal').textContent = fmtMs(d.robot_timer_ms);
+    const bulbs = document.querySelectorAll('#lights .bulb');
+    bulbs.forEach((b,i)=>{
+      b.classList.toggle('on', i < d.light_stage);
+      b.classList.toggle('go', d.state === 'RACING' && d.light_stage === 0);
+    });
+  }
+
+  // 3-2-1 overlay (normal mode start countdown)
+  const overlay = document.getElementById('countdownOverlay');
+  if (d.countdown){
+    overlay.style.display = 'flex';
+    overlay.textContent = d.countdown;
+    clearTimeout(window._cdTimer);
+    window._cdTimer = setTimeout(()=> overlay.style.display='none', 900);
+  }
+}
+</script>
+</body>
+</html>

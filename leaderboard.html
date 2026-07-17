@@ -4,123 +4,69 @@
 <meta charset="UTF-8">
 <title>Leaderboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --asphalt:#0B0E11; --panel:#14181D; --line:#242A31;
-    --red:#E0242C; --amber:#F5A623; --green:#17C964; --gold:#D4AF37; --silver:#C7CCD1; --bronze:#B0793C;
-    --text:#F5F5F0; --muted:#7C8896;
-  }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  body{
-    background:var(--asphalt); color:var(--text); font-family:'Inter',sans-serif;
-    height:100vh; padding:3vh 5vw; display:flex; flex-direction:column;
-  }
-  .flag-strip{
-    height:1.4vh; width:100%;
-    background: repeating-linear-gradient(90deg, var(--text) 0 2vh, var(--asphalt) 2vh 4vh);
-    opacity:0.9; margin-bottom:2vh; border-radius:2px;
-  }
-  header{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2.5vh;}
-  header h1{
-    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:5vh; letter-spacing:2px; text-transform:uppercase;
-  }
-  header .division{
-    font-size:2.2vh; color:var(--amber); text-transform:uppercase; letter-spacing:3px;
-  }
-  .list{
-    flex:1; display:flex; flex-direction:column; gap:1.4vh; position:relative;
-  }
-  .row{
-    display:grid; grid-template-columns: 8vw 1fr auto; align-items:center;
-    gap:2vw; background:var(--panel); border:1px solid var(--line); border-radius:10px;
-    padding:1.6vh 2.4vw;
-    transition: transform .6s cubic-bezier(.2,.8,.2,1), background .3s;
-  }
-  .row.rank-1{border-color:var(--gold);}
-  .row.rank-2{border-color:var(--silver);}
-  .row.rank-3{border-color:var(--bronze);}
-  .rank{
-    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:4.5vh; color:var(--muted); text-align:center;
-  }
-  .row.rank-1 .rank{color:var(--gold);}
-  .row.rank-2 .rank{color:var(--silver);}
-  .row.rank-3 .rank{color:var(--bronze);}
-  .team{
-    font-family:'Rajdhani',sans-serif; font-weight:600; font-size:3.2vh;
-  }
-  .time{
-    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:4vh;
-    font-variant-numeric:tabular-nums; color:var(--green);
-  }
-  .row.flash{ background: rgba(23,201,100,0.12); }
-  footer{
-    margin-top:2vh; text-align:center; color:var(--muted); font-size:1.6vh;
-    letter-spacing:2px; text-transform:uppercase;
-  }
+  :root{--bg:#090c13;--panel:#121826;--line:#1e2636;--ink:#f2f5fa;--dim:#7783a0;
+        --gold:#ffd166;--silver:#cdd6e5;--bronze:#e0a672;--green:#28e07a;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',Tahoma,sans-serif;
+       padding:3vw 4vw;}
+  h1{font-size:2.6vw;margin:0 0 2vw;text-align:center;letter-spacing:.05em;}
+  .list{display:flex;flex-direction:column;gap:1vw;}
+  .row{display:flex;align-items:center;gap:2vw;background:var(--panel);
+       border:1px solid var(--line);border-radius:16px;padding:1.4vw 2vw;
+       transition:transform .5s cubic-bezier(.4,0,.2,1), background .3s;}
+  .rank{font-size:2.6vw;font-weight:900;width:3.5vw;text-align:center;color:var(--dim);}
+  .row:nth-child(1) .rank{color:var(--gold);}
+  .row:nth-child(2) .rank{color:var(--silver);}
+  .row:nth-child(3) .rank{color:var(--bronze);}
+  .info{flex:1;}
+  .team{font-size:2vw;font-weight:800;}
+  .child{font-size:1.2vw;color:var(--dim);}
+  .time{font-size:2.8vw;font-weight:900;font-variant-numeric:tabular-nums;color:var(--green);}
+  .empty{text-align:center;color:var(--dim);font-size:1.6vw;margin-top:4vw;}
 </style>
 </head>
 <body>
-  <div class="flag-strip"></div>
-  <header>
-    <h1>Leaderboard</h1>
-    <div class="division" id="divisionLabel">รุ่นเล็ก</div>
-  </header>
+  <h1>🏁 Leaderboard</h1>
   <div class="list" id="list"></div>
-  <footer>Line Tracking Championship — Best time per team</footer>
+  <div class="empty" id="empty">ยังไม่มีผลการแข่งขัน</div>
 
 <script>
-const WS_URL = `ws://${location.hostname || "192.168.1.100"}:1880/ws/leaderboard`;
-const listEl = document.getElementById('list');
-const divisionLabel = document.getElementById('divisionLabel');
-
-function fmtMs(ms){ return (ms/1000).toFixed(2) + 's'; }
-
-// standings: array of {team, division, best_time_ms, rank}
-function render(standings){
-  if (!standings.length) return;
-  divisionLabel.textContent = standings[0].division || '';
-
-  const existing = new Map([...listEl.children].map(r => [r.dataset.team, r]));
-
-  standings.forEach((entry, idx) => {
-    let row = existing.get(entry.team_name || entry.team);
-    const isNew = !row;
-    if (isNew){
-      row = document.createElement('div');
-      row.className = 'row';
-      row.dataset.team = entry.team_name || entry.team;
-      row.innerHTML = `<div class="rank"></div><div class="team"></div><div class="time"></div>`;
-      listEl.appendChild(row);
-    }
-    row.className = `row rank-${idx+1}`;
-    row.style.order = idx;
-    row.querySelector('.rank').textContent = idx+1;
-    row.querySelector('.team').textContent = entry.team_name || entry.team;
-    row.querySelector('.time').textContent = fmtMs(entry.best_time_ms);
-    if (!isNew){
-      row.classList.add('flash');
-      setTimeout(()=>row.classList.remove('flash'), 700);
-    }
-  });
-
-  listEl.style.display = 'flex';
-  listEl.style.flexDirection = 'column';
-}
-
+const WS_URL = `ws://${location.hostname}:1880/ws/gate`;
+let ws;
 function connect(){
-  const ws = new WebSocket(WS_URL);
-  ws.onmessage = (evt)=>{
-    try{
-      const standings = JSON.parse(evt.data);
-      if (Array.isArray(standings)) render(standings);
-    }catch(e){}
+  ws = new WebSocket(WS_URL);
+  ws.onmessage = (ev)=>{
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "leaderboard") render(msg.data);
   };
   ws.onclose = ()=> setTimeout(connect, 1500);
-  ws.onerror = ()=> ws.close();
 }
 connect();
+
+// initial load via REST in case ws hasn't pushed yet
+fetch(`http://${location.hostname}:1880/api/leaderboard`)
+  .then(r=>r.json()).then(render).catch(()=>{});
+
+function fmtMs(ms){ return (ms/1000).toFixed(2) + " s"; }
+
+function render(rows){
+  const list = document.getElementById('list');
+  const empty = document.getElementById('empty');
+  if (!rows || rows.length === 0){ list.innerHTML = ""; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+
+  rows.sort((a,b)=> a.best_time_ms - b.best_time_ms);
+  list.innerHTML = rows.map((r,i)=>`
+    <div class="row" style="order:${i}">
+      <div class="rank">#${i+1}</div>
+      <div class="info">
+        <div class="team">${r.team_name}</div>
+        <div class="child">${r.child_name} • ${r.class_name}</div>
+      </div>
+      <div class="time">${fmtMs(r.best_time_ms)}</div>
+    </div>`).join("");
+}
 </script>
 </body>
 </html>
