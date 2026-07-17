@@ -46,7 +46,6 @@
         const fieldNum = urlParams.get('field') || '1';
         document.getElementById("page-title").innerText = `📋 กรรมการรอบคัดเลือก - สนาม ${fieldNum}`;
 
-        // ตรวจเช็กว่าถ้ารันหน้าจอผ่านการดับเบิ้ลคลิกไฟล์ตรงๆ ให้ชี้เป้าไปที่ localhost อัตโนมัติ
         let host = window.location.hostname;
         if (!host || host === "") {
             host = "127.0.0.1"; 
@@ -66,15 +65,15 @@
                 document.getElementById("ws-status").innerText = "ONLINE";
                 document.getElementById("ws-status").style.color = "green";
                 
-                // ขอรายชื่อนักแข่งจาก DB ทันทีเมื่อต่อเชื่อมสำเร็จ
+                // ขอรายชื่อนักแข่งจาก DB ทันที
                 const reqMsg = JSON.stringify({ "action": "get_competitors" });
                 ws.send(reqMsg);
                 console.log("ส่งข้อมูลร้องขอรายชื่อนักแข่งแล้ว: ", reqMsg);
             };
 
-ws.onmessage = (event) => {
+            ws.onmessage = (event) => {
                 console.log("=== ได้รับข้อมูลจาก Node-RED ===");
-                console.log(event.data); // ดูโครงสร้างดิบที่ส่งมาใน Console
+                console.log(event.data); 
                 
                 let msg;
                 try {
@@ -84,18 +83,45 @@ ws.onmessage = (event) => {
                     return;
                 }
                 
-                // ตรวจสอบเงื่อนไขการรับรายชื่อนักแข่ง
+                // 1. รับรายชื่อผู้เข้าแข่งขันลง Dropdown
                 if (msg.action === "competitors_list") {
                     console.log("พบ action: competitors_list -> กำลังส่งข้อมูลเข้า Dropdown");
-                    
-                    // ป้องกันกรณีข้อมูลถูกห่อหุ้มซ้อนกัน (Double Payload)
                     let arrayData = msg.data || msg.payload; 
-                    
                     if (typeof arrayData === 'string') {
                         arrayData = JSON.parse(arrayData);
                     }
-                    
                     populateDropdown(arrayData);
+                }
+
+                // 2. ดักรับการยืนยันบันทึกข้อมูลลง DB จริงจาก Node-RED
+                if (msg.action === "ui_db_save_ack") {
+                    if (msg.status === "success") {
+                        alert("💾 ระบบบันทึกสถิติลงฐานข้อมูลสำเร็จเรียบร้อยแล้ว!");
+                    } else {
+                        alert("❌ บันทึกล้มเหลว: " + (msg.error || "เกิดข้อผิดพลาดภายในระบบ"));
+                    }
+                }
+
+                // 3. อัปเดตเวลาและสถานะแบบ Real-time (เฉพาะสนามตัวเอง)
+                if (msg.field === `field${fieldNum}`) {
+                    if (msg.action === "ui_state_update") {
+                        document.getElementById("field-status").innerText = msg.status || "IDLE";
+                        if (msg.lap_time !== undefined) {
+                            currentRecordedTime = parseFloat(msg.lap_time);
+                            document.getElementById("robot-time").innerText = currentRecordedTime.toFixed(3);
+                            
+                            // แจ้งเตือนถ้าวิ่งเร็วผิดปกติ
+                            if (currentRecordedTime > 0 && currentRecordedTime < 2.000) {
+                                document.getElementById("sanity-warning").style.display = "block";
+                            } else {
+                                document.getElementById("sanity-warning").style.display = "none";
+                            }
+                        }
+                    }
+                    // อัปเดตเวลานับถอยหลัง 3 นาที
+                    if (msg.action === "ui_timer_update") {
+                        document.getElementById("match-timer").innerText = msg.time_string;
+                    }
                 }
             };
 
@@ -110,7 +136,6 @@ ws.onmessage = (event) => {
         function populateDropdown(competitors) {
             const select = document.getElementById("competitor_select");
             
-            // 1. ดักจับกรณีไม่มีข้อมูลส่งมาหรือ MySQL ดึงมาไม่ได้
             if (!competitors || competitors.length === 0) {
                 select.innerHTML = '<option value="">-- ไม่พบรายชื่อนักแข่งในฐานข้อมูล --</option>';
                 console.warn("แจ้งเตือน: ได้รับข้อมูลรายชื่อว่างเปล่าจาก Server!");
@@ -122,10 +147,7 @@ ws.onmessage = (event) => {
             competitors.forEach(c => {
                 const opt = document.createElement("option");
                 opt.value = c.id;
-                
-                // 2. ป้องกันคำว่า undefined แสดงบนหน้าจอ
                 const displayName = c.team_name ? c.team_name : (c.student_name ? c.student_name : "นักแข่งนิรนาม");
-                
                 opt.text = `[ID: ${c.id}] ${displayName}`; 
                 opt.setAttribute('data-division', c.division || 'Junior');
                 select.appendChild(opt);
@@ -150,6 +172,7 @@ ws.onmessage = (event) => {
             
             if(!compId) { alert("กรุณาเลือกผู้เข้าแข่งขันก่อนบันทึก!"); return; }
 
+            // ส่งคำสั่งไปรอรับผลบันทึกจริงจาก Ack ด้านบน
             ws.send(JSON.stringify({
                 "sender": `referee_f${fieldNum}`,
                 "action": "save_to_db",
@@ -161,7 +184,7 @@ ws.onmessage = (event) => {
                     "recorded_time": currentRecordedTime
                 }
             }));
-            alert("บันทึกข้อมูลเรียบร้อย!");
+            
             document.getElementById("sanity-warning").style.display = "none";
         }
 
