@@ -95,7 +95,7 @@ connect();
 
 function fmtMs(ms){
   if (ms === null || ms === undefined) return "--.--";
-  const s = ms/1000;
+  const s = Math.max(0, ms)/1000;
   return s.toFixed(2);
 }
 function fmtMainMs(ms){
@@ -105,7 +105,44 @@ function fmtMainMs(ms){
   return `${m}:${String(s).padStart(2,'0')}`;
 }
 
-let lastCountdown = null;
+// --- LiveTimer: วิ่งหลอกๆ ต่อเนื่องด้วย requestAnimationFrame ระหว่าง
+//     packet จาก server (~5Hz) มาถึง, sync ค่าใหม่ทุกครั้งที่มี state เข้ามา,
+//     พอ running=false (เช่น FINISH/TIMEOUT/DQ) จะหยุดนิ่งที่ค่าจริงจาก server ทันที
+class LiveTimer{
+  constructor(direction){ this.direction = direction; this.value=null; this.baseTs=null; this.running=false; }
+  update(value, running){
+    this.value = value;
+    this.baseTs = performance.now();
+    this.running = running;
+  }
+  read(){
+    if (this.value === null) return null;
+    if (!this.running) return this.value;             // หยุดแล้ว = ค่าจริงเป๊ะๆ จาก server
+    const dt = performance.now() - this.baseTs;         // วิ่งหลอกต่อจาก packet ล่าสุด
+    return this.direction === 'down' ? Math.max(0, this.value - dt) : this.value + dt;
+  }
+}
+const mainLive = new LiveTimer('down');
+const robotLive = new LiveTimer('up');
+const robotFinalLive = new LiveTimer('up');
+let curMode = 'normal';
+
+function renderLoop(){
+  if (curMode !== 'final'){
+    const mt = document.getElementById('mainTimer');
+    const ms = mainLive.read();
+    mt.textContent = fmtMainMs(ms);
+    mt.className = "timer-value main-timer";
+    if (ms !== null && ms <= 30000) mt.classList.add("danger");
+    else if (ms !== null && ms <= 60000) mt.classList.add("warn");
+    document.getElementById('robotTimer').textContent = fmtMs(robotLive.read());
+  } else {
+    document.getElementById('robotTimerFinal').textContent = fmtMs(robotFinalLive.read());
+  }
+  requestAnimationFrame(renderLoop);
+}
+requestAnimationFrame(renderLoop);
+
 function render(d){
   document.getElementById('childName').textContent = d.child_name || "รอผู้เข้าแข่งขัน…";
   document.getElementById('teamName').textContent =
@@ -116,18 +153,18 @@ function render(d){
   badge.className = "state-badge state-" + d.state;
 
   const isFinal = d.mode === "final";
+  curMode = d.mode;
   document.getElementById('normalTimers').classList.toggle('hidden', isFinal);
   document.getElementById('finalPanel').classList.toggle('hidden', !isFinal);
 
   if (!isFinal){
-    const mt = document.getElementById('mainTimer');
-    mt.textContent = fmtMainMs(d.main_timer_ms);
-    mt.className = "timer-value main-timer";
-    if (d.main_timer_ms !== null && d.main_timer_ms <= 30000) mt.classList.add("danger");
-    else if (d.main_timer_ms !== null && d.main_timer_ms <= 60000) mt.classList.add("warn");
-    document.getElementById('robotTimer').textContent = fmtMs(d.robot_timer_ms);
+    const mainRunning = ['WAITING','READY','RACING'].includes(d.state);
+    const robotRunning = d.state === 'RACING';
+    mainLive.update(d.main_timer_ms, mainRunning);
+    robotLive.update(d.robot_timer_ms ?? 0, robotRunning);
   } else {
-    document.getElementById('robotTimerFinal').textContent = fmtMs(d.robot_timer_ms);
+    const robotRunning = d.state === 'RACING';
+    robotFinalLive.update(d.robot_timer_ms ?? 0, robotRunning);
     const bulbs = document.querySelectorAll('#lights .bulb');
     bulbs.forEach((b,i)=>{
       b.classList.toggle('on', i < d.light_stage);

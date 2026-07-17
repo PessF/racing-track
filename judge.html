@@ -159,19 +159,45 @@ function setFinalPair(){
   toast("บันทึกคู่แข่งแล้ว — กด 'เริ่มไฟสัญญาณ' เมื่อพร้อม");
 }
 
-function fmtMs(ms){ return (ms===null||ms===undefined) ? "-" : (ms/1000).toFixed(2); }
+function fmtMs(ms){ return (ms===null||ms===undefined) ? "-" : (Math.max(0,ms)/1000).toFixed(2); }
 function fmtMain(ms){
   if (ms===null||ms===undefined) return "3:00";
   const t = Math.max(0, Math.ceil(ms/1000));
   return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;
 }
 
+// วิ่งหลอกๆ ระหว่าง packet เหมือนหน้าจอสนาม แล้ว snap เป็นค่าจริงตอนหยุด
+class LiveTimer{
+  constructor(direction){ this.direction = direction; this.value=null; this.baseTs=null; this.running=false; }
+  update(value, running){ this.value = value; this.baseTs = performance.now(); this.running = running; }
+  read(){
+    if (this.value === null) return null;
+    if (!this.running) return this.value;
+    const dt = performance.now() - this.baseTs;
+    return this.direction === 'down' ? Math.max(0, this.value - dt) : this.value + dt;
+  }
+}
+const mainLive = new LiveTimer('down');
+const robotLive = new LiveTimer('up');
+let curModeState = 'normal';
+
+function renderLoop(){
+  document.getElementById('curMain').textContent = curModeState === 'normal' ? fmtMain(mainLive.read()) : "—";
+  document.getElementById('curRobot').textContent = fmtMs(robotLive.read());
+  requestAnimationFrame(renderLoop);
+}
+requestAnimationFrame(renderLoop);
+
 function render(d){
   document.getElementById('statePill').textContent = `${d.mode.toUpperCase()} / ${d.state}`;
   document.getElementById('curName').textContent = d.child_name || "-";
   document.getElementById('curTeam').textContent = [d.team_name, d.class_name].filter(Boolean).join(" • ") || "-";
-  document.getElementById('curMain').textContent = d.mode==='normal' ? fmtMain(d.main_timer_ms) : "—";
-  document.getElementById('curRobot').textContent = fmtMs(d.robot_timer_ms);
+
+  curModeState = d.mode;
+  if (d.mode === 'normal'){
+    mainLive.update(d.main_timer_ms, ['WAITING','READY','RACING'].includes(d.state));
+  }
+  robotLive.update(d.robot_timer_ms ?? 0, d.state === 'RACING');
 }
 
 let toastTimer;
