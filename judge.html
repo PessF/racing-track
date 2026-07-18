@@ -28,6 +28,7 @@
   .b-primary{background:var(--accent);color:#fff;}
   .b-green{background:var(--green);}
   .b-red{background:var(--red);color:#fff;}
+  .b-white{background:#fff;color:#08101f;}
   .b-amber{background:var(--amber);}
   .b-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
   .status{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
@@ -94,17 +95,15 @@
       <div><label>อันดับที่เข้ารอบ (seed)</label><input id="ff_seed" type="number" min="1" max="4"></div>
     </div>
     <div class="btns">
-      <button class="b-primary" onclick="setFinalPair()">บันทึกคู่แข่ง</button>
-      <button class="b-green" onclick="cmd('start_lights')">เริ่มไฟสัญญาณ (F1 Start)</button>
+      <button class="b-white" onclick="setFinalPair()">ส่งชื่อ</button>
+      <button class="b-green" onclick="cmd('start_lights')">เริ่มสัญญาณไฟ</button>
     </div>
     <div class="btns">
-      <button class="b-red" onclick="cmd('dq')">ปรับแพ้ (RACING/FINISH)</button>
-      <button class="b-amber" onclick="cmd('yellow_card')">ใบเหลือง (False Start → วิ่งใหม่)</button>
-      <button class="b-red" onclick="cmd('dq_final')">DQ (False Start ครั้งที่ 2)</button>
+      <button class="b-primary" onclick="cmd('confirm')">ยืนยันผล</button>
+      <button class="b-red" onclick="cmd('dq')">ปรับแพ้</button>
     </div>
     <div class="btns">
-      <button class="b-primary" onclick="cmd('confirm')">ยืนยันผล → บันทึก DB</button>
-      <button class="b-ghost" onclick="cmd('reset')">Reset ฉุกเฉิน</button>
+      <button class="b-ghost" onclick="cmd('reset_final')">↺ Reset</button>
     </div>
   </div>
 
