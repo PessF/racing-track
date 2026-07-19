@@ -28,7 +28,6 @@
   .b-primary{background:var(--accent);color:#fff;}
   .b-green{background:var(--green);}
   .b-red{background:var(--red);color:#fff;}
-  .b-white{background:#fff;color:#08101f;}
   .b-amber{background:var(--amber);}
   .b-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
   .status{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
@@ -95,7 +94,7 @@
       <div><label>อันดับที่เข้ารอบ (seed)</label><input id="ff_seed" type="number" min="1" max="4"></div>
     </div>
     <div class="btns">
-      <button class="b-white" onclick="setFinalPair()">ส่งชื่อ</button>
+      <button class="b-primary" onclick="setFinalPair()">บันทึก</button>
       <button class="b-green" onclick="cmd('start_lights')">เริ่มสัญญาณไฟ</button>
     </div>
     <div class="btns">
@@ -123,6 +122,10 @@ function connect(){
   ws.onclose = ()=>{ toast("หลุดการเชื่อมต่อ กำลังต่อใหม่…"); setTimeout(connect, 1500); };
 }
 connect();
+
+// sync ค่าล่าสุดทันทีตอนเปิดหน้า (server ส่งเฉพาะตอนมี event จริงแล้ว ไม่ broadcast รัว)
+fetch(`http://${location.hostname}:1880/api/state`)
+  .then(r=>r.json()).then(d=>{ if (d && d.state) render(d); }).catch(()=>{});
 
 function send(obj){
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
