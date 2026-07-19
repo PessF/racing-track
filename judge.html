@@ -171,13 +171,24 @@ function fmtMain(ms){
 // วิ่งหลอกๆ ระหว่าง packet เหมือนหน้าจอสนาม แล้ว snap เป็นค่าจริงตอนหยุด
 class LiveTimer{
   constructor(direction){ this.direction = direction; this.value=null; this.baseTs=null; this.running=false; }
-  update(value, running){ this.value = value; this.baseTs = performance.now(); this.running = running; }
+  update(value, running, delayMs=0){
+    if (value === null || value === undefined){ this.value = null; return; }
+    this.value = this.direction === 'down' ? Math.max(0, value - delayMs) : value + delayMs;
+    this.baseTs = performance.now();
+    this.running = running;
+  }
   read(){
     if (this.value === null) return null;
     if (!this.running) return this.value;
     const dt = performance.now() - this.baseTs;
     return this.direction === 'down' ? Math.max(0, this.value - dt) : this.value + dt;
   }
+}
+function estimateDelayMs(serverTs){
+  if (!serverTs) return 0;
+  const d = Date.now() - serverTs;
+  if (!isFinite(d) || d < 0 || d > 3000) return 0;
+  return d;
 }
 const mainLive = new LiveTimer('down');
 const robotLive = new LiveTimer('up');
@@ -196,10 +207,11 @@ function render(d){
   document.getElementById('curTeam').textContent = [d.team_name, d.class_name].filter(Boolean).join(" • ") || "-";
 
   curModeState = d.mode;
+  const delay = estimateDelayMs(d.ts);
   if (d.mode === 'normal'){
-    mainLive.update(d.main_timer_ms, ['WAITING','READY','RACING'].includes(d.state));
+    mainLive.update(d.main_timer_ms, ['WAITING','READY','RACING'].includes(d.state), delay);
   }
-  robotLive.update(d.robot_timer_ms ?? 0, d.state === 'RACING');
+  robotLive.update(d.robot_timer_ms ?? 0, d.state === 'RACING', delay);
 }
 
 let toastTimer;

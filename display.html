@@ -116,8 +116,12 @@ function fmtMainMs(ms){
 //     พอ running=false (เช่น FINISH/TIMEOUT/DQ) จะหยุดนิ่งที่ค่าจริงจาก server ทันที
 class LiveTimer{
   constructor(direction){ this.direction = direction; this.value=null; this.baseTs=null; this.running=false; }
-  update(value, running){
-    this.value = value;
+  // delayMs = เวลาที่ "เนียนหายไป" ระหว่างตัด sensor จริงที่ controller กับตอน
+  // browser ได้รับ packet (network + queue) — บวก/ลบชดเชยตรงนี้ก่อนเริ่มนับหลอก
+  // จะได้ไม่รู้สึกดีเลย์ตั้งแต่วินาทีแรกที่ตัด sensor
+  update(value, running, delayMs=0){
+    if (value === null || value === undefined){ this.value = null; return; }
+    this.value = this.direction === 'down' ? Math.max(0, value - delayMs) : value + delayMs;
     this.baseTs = performance.now();
     this.running = running;
   }
@@ -127,6 +131,14 @@ class LiveTimer{
     const dt = performance.now() - this.baseTs;         // วิ่งหลอกต่อจาก packet ล่าสุด
     return this.direction === 'down' ? Math.max(0, this.value - dt) : this.value + dt;
   }
+}
+// ประมาณดีเลย์เครือข่ายจาก server timestamp (d.ts) เทียบเวลาเครื่อง browser
+// กันไว้ไม่ให้พังถ้านาฬิกา Pi กับจอไม่ตรงกันมากผิดปกติ (เกิน 3 วิ = เมิน ถือเป็น 0)
+function estimateDelayMs(serverTs){
+  if (!serverTs) return 0;
+  const d = Date.now() - serverTs;
+  if (!isFinite(d) || d < 0 || d > 3000) return 0;
+  return d;
 }
 const mainLive = new LiveTimer('down');
 const robotLive = new LiveTimer('up');
@@ -163,14 +175,15 @@ function render(d){
   document.getElementById('normalTimers').classList.toggle('hidden', isFinal);
   document.getElementById('finalPanel').classList.toggle('hidden', !isFinal);
 
+  const delay = estimateDelayMs(d.ts);
   if (!isFinal){
     const mainRunning = ['WAITING','READY','RACING'].includes(d.state);
     const robotRunning = d.state === 'RACING';
-    mainLive.update(d.main_timer_ms, mainRunning);
-    robotLive.update(d.robot_timer_ms ?? 0, robotRunning);
+    mainLive.update(d.main_timer_ms, mainRunning, delay);
+    robotLive.update(d.robot_timer_ms ?? 0, robotRunning, delay);
   } else {
     const robotRunning = d.state === 'RACING';
-    robotFinalLive.update(d.robot_timer_ms ?? 0, robotRunning);
+    robotFinalLive.update(d.robot_timer_ms ?? 0, robotRunning, delay);
     const bulbs = document.querySelectorAll('#lights .bulb');
     bulbs.forEach((b,i)=>{
       const stageNum = i + 1;              // 1,2,3 = แดง, 4 = เหลือง, 5 = เขียว(go)
