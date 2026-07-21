@@ -40,7 +40,6 @@
   .bulb{width:6vw;height:6vw;border-radius:50%;background:#2a1010;
     border:.6vw solid #3a1414;transition:background .15s;}
   .bulb.on{background:var(--red);box-shadow:0 0 5vw rgba(255,59,59,.7);}
-  .bulb.yellow{background:var(--amber);box-shadow:0 0 5vw rgba(255,176,32,.7);}
   .bulb.go{background:var(--green)!important;box-shadow:0 0 6vw rgba(40,224,122,.8)!important;}
   .hidden{display:none;}
 </style>
@@ -120,8 +119,12 @@ class LiveTimer{
   // browser ได้รับ packet (network + queue) — บวก/ลบชดเชยตรงนี้ก่อนเริ่มนับหลอก
   // จะได้ไม่รู้สึกดีเลย์ตั้งแต่วินาทีแรกที่ตัด sensor
   update(value, running, delayMs=0){
-    if (value === null || value === undefined){ this.value = null; return; }
-    this.value = this.direction === 'down' ? Math.max(0, value - delayMs) : value + delayMs;
+    if (value === null || value === undefined){ this.value = null; this.running = false; return; }
+    if (running){
+      this.value = this.direction === 'down' ? Math.max(0, value - delayMs) : value + delayMs;
+    } else {
+      this.value = value;   // หยุดแล้ว = ค่าจริงเป๊ะๆ ห้ามชดเชย delay เด็ดขาด
+    }
     this.baseTs = performance.now();
     this.running = running;
   }
@@ -186,11 +189,10 @@ function render(d){
     robotFinalLive.update(d.robot_timer_ms ?? 0, robotRunning, delay);
     const bulbs = document.querySelectorAll('#lights .bulb');
     bulbs.forEach((b,i)=>{
-      const stageNum = i + 1;              // 1,2,3 = แดง, 4 = เหลือง, 5 = เขียว(go)
+      const stageNum = i + 1;              // ดวง 1-5 ติดแดงทีละดวง แล้วเขียวพร้อมกันหมด
       const lit = stageNum <= d.light_stage;
-      b.classList.toggle('on', lit && stageNum <= 3);
-      b.classList.toggle('yellow', lit && stageNum === 4);
-      b.classList.toggle('go', lit && stageNum === 5);
+      b.classList.toggle('on', lit && !d.lights_go);
+      b.classList.toggle('go', d.lights_go);
     });
   }
 
