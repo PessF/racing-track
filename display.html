@@ -50,11 +50,11 @@
   .brand-text .sub{font-weight:500;font-size:.95vw;letter-spacing:.1em;color:var(--dim);}
 
   .wrap{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:3.4vh;padding:2vh 3vw;text-align:center;}
-  .names{font-size:7vw;font-weight:800;letter-spacing:.02em;text-shadow:0 0 40px rgba(124,58,237,.35);}
-  .team{font-size:2.8vw;color:var(--dim);font-weight:600;}
+    align-items:center;justify-content:center;gap:3.6vh;padding:2vh 2vw;text-align:center;}
+  .names{font-size:9vw;font-weight:800;letter-spacing:.02em;text-shadow:0 0 46px rgba(124,58,237,.4);}
+  .team{font-size:3.6vw;color:var(--dim);font-weight:600;}
 
-  .state-badge{font-size:2.6vw;padding:1.4vh 3.2vw;border-radius:999px;
+  .state-badge{font-size:3.2vw;padding:1.6vh 3.6vw;border-radius:999px;
     border:2px solid var(--line);letter-spacing:.14em;font-weight:800;
     background:linear-gradient(180deg, var(--panel), var(--panel-2));
     box-shadow:0 10px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);}
@@ -65,29 +65,40 @@
   .state-FINISH{color:#c084fc;}
   .state-TIMEOUT,.state-DQ,.state-FALSE_START{color:var(--red);}
 
-  .timers{display:flex;gap:5vw;align-items:flex-end;}
+  .timers{display:flex;gap:3vw;align-items:flex-end;}
   .timer-block{display:flex;flex-direction:column;align-items:center;gap:1.4vh;
     background:linear-gradient(180deg, var(--panel), var(--panel-2));
-    border:1px solid var(--line);border-radius:2vw;padding:2.4vh 3.2vw;
-    box-shadow:0 14px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.03);}
-  .timer-block.final-robot{margin-top:3vh;}
-  .timer-label{font-size:1.9vw;color:var(--dim);text-transform:uppercase;letter-spacing:.15em;}
-  .timer-value{font-size:12.5vw;font-weight:900;font-variant-numeric:tabular-nums;
-    line-height:1;text-shadow:0 0 40px rgba(255,255,255,.08);}
+    border:1px solid var(--line);border-radius:2vw;padding:2.4vh 2vw;
+    box-shadow:0 14px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.03);
+    min-width:0;}
+  .timer-block.final-robot{margin-top:0;}
+  .timer-label{font-size:2.2vw;color:var(--dim);text-transform:uppercase;letter-spacing:.15em;}
+  .timer-value{font-size:13.5vw;font-weight:900;font-variant-numeric:tabular-nums;
+    line-height:1;text-shadow:0 0 44px rgba(255,255,255,.08);white-space:nowrap;}
   .main-timer.warn{color:var(--amber);}
   .main-timer.danger{color:var(--red);animation:pulse 1s infinite;}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-  .robot-timer{color:var(--green);text-shadow:0 0 34px rgba(40,224,122,.45);}
+  .robot-timer{color:var(--green);text-shadow:0 0 38px rgba(40,224,122,.5);}
 
   .countdown-overlay{position:fixed;inset:0;display:none;align-items:center;
     justify-content:center;background:rgba(8,4,20,.88);font-size:30vw;font-weight:900;
     color:var(--amber);text-shadow:0 0 70px rgba(255,176,32,.5);z-index:10;}
 
-  .lights{display:flex;gap:2vw;margin-top:1.4vh;}
-  .bulb{width:7vw;height:7vw;border-radius:50%;background:#1c0f2e;
-    border:.6vw solid #2c1750;transition:background .15s, box-shadow .15s;}
-  .bulb.on{background:var(--red);box-shadow:0 0 5vw rgba(255,59,59,.7);}
-  .bulb.go{background:var(--green)!important;box-shadow:0 0 6vw rgba(40,224,122,.8)!important;}
+  /* ===== F1 start-lights: full-screen dramatic takeover for TOP4 ===== */
+  .lights-overlay{position:fixed;inset:0;z-index:8;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(120vw 120vw at 50% 50%, rgba(30,15,70,.97), #04010d 82%);
+    opacity:0;pointer-events:none;transition:opacity 1.2s ease;}
+  .lights-overlay.show{opacity:1;}
+  .lights-big{display:flex;gap:3vw;}
+  .bulb-big{width:14vw;height:14vw;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #3a1a1a, #1c0d0d);
+    border:1vw solid rgba(255,255,255,.08);transition:background .15s, box-shadow .15s, border-color .15s;}
+  .bulb-big.on{background:radial-gradient(circle at 35% 30%, #ff8a8a, var(--red));
+    box-shadow:0 0 9vw rgba(255,59,59,.85);border-color:rgba(255,255,255,.3);}
+  .bulb-big.go{background:radial-gradient(circle at 35% 30%, #8dffcf, var(--green))!important;
+    box-shadow:0 0 11vw rgba(40,224,122,.9)!important;
+    border-color:rgba(255,255,255,.4)!important;}
   .hidden{display:none;}
 </style>
 </head>
@@ -102,6 +113,14 @@
   </div>
 
   <div class="countdown-overlay" id="countdownOverlay">3</div>
+
+  <!-- TOP4: full-screen F1 start lights, fades in during LIGHTS state -->
+  <div class="lights-overlay" id="lightsOverlay">
+    <div class="lights-big" id="lightsBig">
+      <div class="bulb-big"></div><div class="bulb-big"></div><div class="bulb-big"></div>
+      <div class="bulb-big"></div><div class="bulb-big"></div>
+    </div>
+  </div>
 
   <div class="wrap">
     <div>
@@ -123,12 +142,8 @@
       </div>
     </div>
 
-    <!-- Final mode: F1 lights -->
+    <!-- Final mode: robot timer only (lights now live in the full-screen overlay above) -->
     <div id="finalPanel" class="hidden">
-      <div class="lights" id="lights">
-        <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
-        <div class="bulb"></div><div class="bulb"></div>
-      </div>
       <div class="timer-block final-robot">
         <div class="timer-label">เวลาหุ่นวิ่ง</div>
         <div class="timer-value robot-timer" id="robotTimerFinal">0.00</div>
@@ -203,6 +218,42 @@ const mainLive = new LiveTimer('down');
 const robotLive = new LiveTimer('up');
 const robotFinalLive = new LiveTimer('up');
 let curMode = 'normal';
+let lightsHideTimer = null;
+let prevLightsGo = false;
+
+function updateLightsOverlay(d){
+  const overlay = document.getElementById('lightsOverlay');
+  const bulbs = document.querySelectorAll('#lightsBig .bulb-big');
+
+  if (d.state === 'LIGHTS'){
+    // กำลังไล่ไฟแดง — โชว์เต็มจอค้างไว้ตลอด ไม่มี auto-hide
+    clearTimeout(lightsHideTimer);
+    lightsHideTimer = null;
+    overlay.classList.add('show');
+    bulbs.forEach((b,i)=>{
+      const lit = (i+1) <= d.light_stage;
+      b.classList.toggle('on', lit);
+      b.classList.remove('go');
+    });
+    prevLightsGo = false;
+  } else if (d.lights_go && !prevLightsGo){
+    // ขอบขาขึ้น: เพิ่งปล่อยตัว (state เด้งเป็น RACING มาพร้อมกันในข้อความเดียวกัน)
+    // โชว์เขียวเต็มจอค้างไว้แป๊บนึงให้เห็นชัดๆ ก่อนค่อย fade กลับไปหน้าจับเวลา
+    clearTimeout(lightsHideTimer);
+    overlay.classList.add('show');
+    bulbs.forEach(b=>{ b.classList.remove('on'); b.classList.add('go'); });
+    lightsHideTimer = setTimeout(()=>{
+      overlay.classList.remove('show');
+      lightsHideTimer = null;
+    }, 900);
+    prevLightsGo = true;
+  } else if (!d.lights_go){
+    prevLightsGo = false;
+    if (!lightsHideTimer) overlay.classList.remove('show');
+  }
+  // ถ้า lights_go ยังเป็น true ต่อเนื่อง (RACING/FINISH ข้อความถัดๆ ไป) ไม่ต้อง
+  // ทำอะไรซ้ำ ปล่อยให้ timer ที่ตั้งไว้ครั้งแรกทำงานของมันไปตามปกติ
+}
 
 function renderLoop(){
   if (curMode !== 'final'){
@@ -243,14 +294,11 @@ function render(d){
   } else {
     const robotRunning = d.state === 'RACING';
     robotFinalLive.update(d.robot_timer_ms ?? 0, robotRunning, delay);
-    const bulbs = document.querySelectorAll('#lights .bulb');
-    bulbs.forEach((b,i)=>{
-      const stageNum = i + 1;              // ดวง 1-5 ติดแดงทีละดวง แล้วเขียวพร้อมกันหมด
-      const lit = stageNum <= d.light_stage;
-      b.classList.toggle('on', lit && !d.lights_go);
-      b.classList.toggle('go', d.lights_go);
-    });
   }
+
+  // TOP4: ไฟสตาร์ทเต็มจอ — ค่อยๆ fade มืดลงตอนเข้า state LIGHTS, โชว์หลอด
+  // ใหญ่เต็มจอ, ค้างที่เขียวแป๊บนึงตอนปล่อยตัวก่อน fade กลับออก
+  updateLightsOverlay(d);
 
   // 3-2-1 overlay (normal mode start countdown)
   const overlay = document.getElementById('countdownOverlay');
