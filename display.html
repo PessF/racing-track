@@ -40,21 +40,21 @@
   }
 
   /* ===== logo / brand slot ===== */
-  .brand-bar{position:fixed;top:22px;left:28px;display:flex;align-items:center;gap:14px;z-index:5;}
-  .brand-logo{height:56px;width:auto;display:block;
+  .brand-bar{position:fixed;top:2vh;left:2vw;display:flex;align-items:center;gap:1vw;z-index:5;}
+  .brand-logo{height:5vh;width:auto;display:block;
     filter:drop-shadow(0 2px 14px rgba(124,58,237,.55));}
   .brand-logo:not([src]),.brand-logo[src=""]{display:none;}
   .brand-text{line-height:1.25;}
-  .brand-text .name{font-weight:800;font-size:15px;letter-spacing:.14em;
+  .brand-text .name{font-weight:800;font-size:1.3vw;letter-spacing:.14em;
     text-transform:uppercase;color:var(--brand-bright);}
-  .brand-text .sub{font-weight:500;font-size:11px;letter-spacing:.1em;color:var(--dim);}
+  .brand-text .sub{font-weight:500;font-size:.95vw;letter-spacing:.1em;color:var(--dim);}
 
   .wrap{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:26px;padding:24px;text-align:center;}
-  .names{font-size:5vw;font-weight:800;letter-spacing:.02em;text-shadow:0 0 40px rgba(124,58,237,.35);}
-  .team{font-size:2.2vw;color:var(--dim);font-weight:600;}
+    align-items:center;justify-content:center;gap:3.4vh;padding:2vh 3vw;text-align:center;}
+  .names{font-size:7vw;font-weight:800;letter-spacing:.02em;text-shadow:0 0 40px rgba(124,58,237,.35);}
+  .team{font-size:2.8vw;color:var(--dim);font-weight:600;}
 
-  .state-badge{font-size:2vw;padding:12px 34px;border-radius:999px;
+  .state-badge{font-size:2.6vw;padding:1.4vh 3.2vw;border-radius:999px;
     border:2px solid var(--line);letter-spacing:.14em;font-weight:800;
     background:linear-gradient(180deg, var(--panel), var(--panel-2));
     box-shadow:0 10px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);}
@@ -66,12 +66,13 @@
   .state-TIMEOUT,.state-DQ,.state-FALSE_START{color:var(--red);}
 
   .timers{display:flex;gap:5vw;align-items:flex-end;}
-  .timer-block{display:flex;flex-direction:column;align-items:center;gap:10px;
+  .timer-block{display:flex;flex-direction:column;align-items:center;gap:1.4vh;
     background:linear-gradient(180deg, var(--panel), var(--panel-2));
-    border:1px solid var(--line);border-radius:28px;padding:22px 40px;
+    border:1px solid var(--line);border-radius:2vw;padding:2.4vh 3.2vw;
     box-shadow:0 14px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.03);}
-  .timer-label{font-size:1.6vw;color:var(--dim);text-transform:uppercase;letter-spacing:.15em;}
-  .timer-value{font-size:11vw;font-weight:900;font-variant-numeric:tabular-nums;
+  .timer-block.final-robot{margin-top:3vh;}
+  .timer-label{font-size:1.9vw;color:var(--dim);text-transform:uppercase;letter-spacing:.15em;}
+  .timer-value{font-size:12.5vw;font-weight:900;font-variant-numeric:tabular-nums;
     line-height:1;text-shadow:0 0 40px rgba(255,255,255,.08);}
   .main-timer.warn{color:var(--amber);}
   .main-timer.danger{color:var(--red);animation:pulse 1s infinite;}
@@ -82,8 +83,8 @@
     justify-content:center;background:rgba(8,4,20,.88);font-size:30vw;font-weight:900;
     color:var(--amber);text-shadow:0 0 70px rgba(255,176,32,.5);z-index:10;}
 
-  .lights{display:flex;gap:2vw;margin-top:12px;}
-  .bulb{width:6vw;height:6vw;border-radius:50%;background:#1c0f2e;
+  .lights{display:flex;gap:2vw;margin-top:1.4vh;}
+  .bulb{width:7vw;height:7vw;border-radius:50%;background:#1c0f2e;
     border:.6vw solid #2c1750;transition:background .15s, box-shadow .15s;}
   .bulb.on{background:var(--red);box-shadow:0 0 5vw rgba(255,59,59,.7);}
   .bulb.go{background:var(--green)!important;box-shadow:0 0 6vw rgba(40,224,122,.8)!important;}
@@ -128,7 +129,7 @@
         <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
         <div class="bulb"></div><div class="bulb"></div>
       </div>
-      <div class="timer-block" style="margin-top:20px;">
+      <div class="timer-block final-robot">
         <div class="timer-label">เวลาหุ่นวิ่ง</div>
         <div class="timer-value robot-timer" id="robotTimerFinal">0.00</div>
       </div>

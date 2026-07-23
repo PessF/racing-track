@@ -51,6 +51,11 @@
   .header-text h1{font-size:2.6vw;margin:0;letter-spacing:.05em;font-weight:800;}
   .header-text .subtitle{font-size:1.1vw;color:var(--dim);letter-spacing:.2em;
     text-transform:uppercase;font-weight:600;}
+  .mode-pill{display:inline-block;margin-top:.4vw;padding:.35vw 1.1vw;border-radius:999px;
+    font-size:1vw;font-weight:700;letter-spacing:.1em;border:1px solid var(--line);
+    background:rgba(124,58,237,.12);color:var(--brand-bright);}
+  .mode-pill.final{background:rgba(255,209,102,.12);color:var(--gold);
+    border-color:rgba(255,209,102,.35);}
 
   .list{display:flex;flex-direction:column;gap:1vw;}
   .row{display:flex;align-items:center;gap:2vw;position:relative;overflow:hidden;
@@ -60,18 +65,18 @@
        transition:transform .5s cubic-bezier(.4,0,.2,1), background .3s;}
   .row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;
     background:var(--brand);opacity:.45;}
-  .row:nth-child(1)::before{background:var(--gold);opacity:1;box-shadow:0 0 20px rgba(255,209,102,.6);}
-  .row:nth-child(2)::before{background:var(--silver);opacity:1;box-shadow:0 0 16px rgba(205,214,229,.4);}
-  .row:nth-child(3)::before{background:var(--bronze);opacity:1;box-shadow:0 0 16px rgba(224,166,114,.4);}
+  .row.rank-1::before{background:var(--gold);opacity:1;box-shadow:0 0 20px rgba(255,209,102,.6);}
+  .row.rank-2::before{background:var(--silver);opacity:1;box-shadow:0 0 16px rgba(205,214,229,.4);}
+  .row.rank-3::before{background:var(--bronze);opacity:1;box-shadow:0 0 16px rgba(224,166,114,.4);}
 
   .rank{font-size:2vw;font-weight:900;width:3.8vw;height:3.8vw;flex:0 0 auto;
     display:flex;align-items:center;justify-content:center;border-radius:50%;
     background:rgba(255,255,255,.03);border:2px solid var(--line);color:var(--dim);}
-  .row:nth-child(1) .rank{color:#2a1806;border-color:var(--gold);
+  .row.rank-1 .rank{color:#2a1806;border-color:var(--gold);
     background:linear-gradient(160deg,#ffe9b0,var(--gold));box-shadow:0 0 26px rgba(255,209,102,.5);}
-  .row:nth-child(2) .rank{color:#1c2230;border-color:var(--silver);
+  .row.rank-2 .rank{color:#1c2230;border-color:var(--silver);
     background:linear-gradient(160deg,#f2f5fa,var(--silver));box-shadow:0 0 20px rgba(205,214,229,.35);}
-  .row:nth-child(3) .rank{color:#2e1809;border-color:var(--bronze);
+  .row.rank-3 .rank{color:#2e1809;border-color:var(--bronze);
     background:linear-gradient(160deg,#f3cd9e,var(--bronze));box-shadow:0 0 20px rgba(224,166,114,.35);}
 
   .info{flex:1;}
@@ -88,8 +93,9 @@
   <div class="page-header">
     <img class="brand-logo" src="logo.png" alt="Event logo" onerror="this.style.display='none'">
     <div class="header-text">
-      <h1>🏁 Leaderboard</h1>
-      <div class="subtitle">EasyKids Robotics Racing</div>
+      <h1 id="pageTitle">🏁 Leaderboard</h1>
+      <div class="subtitle" id="pageSubtitle">EasyKids Robotics Racing</div>
+      <div class="mode-pill" id="modePill">รอบคัดเลือก</div>
     </div>
   </div>
 
@@ -104,34 +110,139 @@ function connect(){
   ws = new WebSocket(WS_URL);
   ws.onmessage = (ev)=>{
     const msg = JSON.parse(ev.data);
-    if (msg.type === "leaderboard") render(msg.data);
+    if (msg.type === "leaderboard") {
+      if (msg.mode === "final") finalRows = msg.data;
+      else normalRows = msg.data;
+      render();
+    } else if (msg.type === "state") {
+      setMode(msg.data.mode);
+    }
   };
   ws.onclose = ()=> setTimeout(connect, 1500);
 }
 connect();
 
-// initial load via REST in case ws hasn't pushed yet
+// โหลดค่าตั้งต้นของทั้ง 2 กระดานตอนเปิดหน้า (เผื่อ ws ยังไม่ทันส่งมา)
+let normalRows = [];
+let finalRows = [];
+let currentMode = 'normal';
+
 fetch(`http://${location.hostname}:1880/api/leaderboard`)
-  .then(r=>r.json()).then(render).catch(()=>{});
+  .then(r=>r.json()).then(rows=>{ normalRows = rows; render(); }).catch(()=>{});
+fetch(`http://${location.hostname}:1880/api/leaderboard?mode=final`)
+  .then(r=>r.json()).then(rows=>{ finalRows = rows; render(); }).catch(()=>{});
+fetch(`http://${location.hostname}:1880/api/state`)
+  .then(r=>r.json()).then(d=>{ if (d && d.mode) setMode(d.mode); }).catch(()=>{});
+
+function setMode(mode){
+  if (mode !== 'normal' && mode !== 'final') return;
+  if (mode === currentMode) return;
+  currentMode = mode;
+  clearList();  // สลับโหมดจริงๆ ค่อย reset DOM (ไม่บ่อย ไม่ทำให้กระพริบระหว่างแข่ง)
+  const pill = document.getElementById('modePill');
+  const title = document.getElementById('pageTitle');
+  const subtitle = document.getElementById('pageSubtitle');
+  if (mode === 'final'){
+    pill.textContent = 'รอบ FINAL — TOP 4';
+    pill.classList.add('final');
+    title.textContent = '🏆 Final Leaderboard';
+    subtitle.textContent = 'EasyKids Robotics Racing — Top 4';
+  } else {
+    pill.textContent = 'รอบคัดเลือก';
+    pill.classList.remove('final');
+    title.textContent = '🏁 Leaderboard';
+    subtitle.textContent = 'EasyKids Robotics Racing';
+  }
+  render();
+}
 
 function fmtMs(ms){ return (ms/1000).toFixed(2) + " s"; }
 
-function render(rows){
-  const list = document.getElementById('list');
+// ---------- keyed DOM reconciliation (กันกระพริบ) ----------
+// เดิม: list.innerHTML = rows.map(...).join("") ทุกครั้งที่มีข้อความเข้ามา
+// (ทั้งตอน confirm ผล และตอน periodic refresh ทุก 5 วิ) ทำลาย DOM node เดิม
+// ทั้งหมดแล้วสร้างใหม่ แม้ข้อมูลจะเหมือนเดิมเป๊ะ -> กระพริบทุกครั้ง
+// ตอนนี้เก็บ element ต่อทีมไว้ (key = participant_id) อัปเดตแค่ text/class/
+// ตำแหน่ง (flex order) โดยไม่ทำลาย DOM node เดิมเลย
+let elMap = new Map();
+
+function clearList(){
+  document.getElementById('list').innerHTML = '';
+  elMap = new Map();
+}
+
+function ensureRow(key){
+  let el = elMap.get(key);
+  if (!el){
+    el = document.createElement('div');
+    el.className = 'row';
+    el.dataset.key = key;
+    el.innerHTML =
+      '<div class="rank"></div>' +
+      '<div class="info"><div class="team"></div><div class="child"></div></div>' +
+      '<div class="time"></div>';
+    document.getElementById('list').appendChild(el);
+    elMap.set(key, el);
+  }
+  return el;
+}
+
+function setRankClass(el, rankIndex){
+  el.classList.remove('rank-1','rank-2','rank-3');
+  if (rankIndex === 0) el.classList.add('rank-1');
+  else if (rankIndex === 1) el.classList.add('rank-2');
+  else if (rankIndex === 2) el.classList.add('rank-3');
+}
+
+function render(){
+  const rows = currentMode === 'final' ? finalRows : normalRows;
   const empty = document.getElementById('empty');
-  if (!rows || rows.length === 0){ list.innerHTML = ""; empty.style.display='block'; return; }
+  if (!rows || rows.length === 0){
+    clearList();
+    empty.style.display = 'block';
+    return;
+  }
   empty.style.display = 'none';
 
-  rows.sort((a,b)=> a.best_time_ms - b.best_time_ms);
-  list.innerHTML = rows.map((r,i)=>`
-    <div class="row" style="order:${i}">
-      <div class="rank">#${i+1}</div>
-      <div class="info">
-        <div class="team">${r.team_name}</div>
-        <div class="child">${r.child_name} • ${r.class_name}</div>
-      </div>
-      <div class="time">${fmtMs(r.best_time_ms)}</div>
-    </div>`).join("");
+  // v_leaderboard/v_final_leaderboard เรียงมาให้แล้วจาก SQL แต่ normal mode
+  // เรียงซ้ำอีกทีฝั่ง client กันเผื่อลำดับจาก periodic refresh คลาดเคลื่อน
+  const sorted = currentMode === 'final'
+    ? rows
+    : [...rows].sort((a,b)=> a.best_time_ms - b.best_time_ms);
+
+  const seenKeys = new Set();
+  sorted.forEach((r,i)=>{
+    const key = String(r.participant_id);
+    seenKeys.add(key);
+    const el = ensureRow(key);
+    el.style.order = i;
+    setRankClass(el, i);
+    el.querySelector('.rank').textContent = `#${i+1}`;
+    el.querySelector('.team').textContent = r.team_name;
+    const timeEl = el.querySelector('.time');
+    if (currentMode === 'final'){
+      el.querySelector('.child').textContent = `${r.child_name} • Seed #${r.seed_rank}`;
+      if (r.status === 'FINISH'){
+        timeEl.textContent = fmtMs(r.robot_time_ms);
+        timeEl.style.color = ''; timeEl.style.textShadow = '';
+      } else {
+        timeEl.textContent = r.status;
+        timeEl.style.color = 'var(--dim)'; timeEl.style.textShadow = 'none';
+      }
+    } else {
+      el.querySelector('.child').textContent = `${r.child_name} • ${r.class_name}`;
+      timeEl.textContent = fmtMs(r.best_time_ms);
+      timeEl.style.color = ''; timeEl.style.textShadow = '';
+    }
+  });
+
+  // ลบแถวของทีมที่ไม่อยู่ในผลล่าสุดแล้ว (เผื่อกรณีแก้ไขข้อมูลย้อนหลัง)
+  for (const [key, el] of elMap){
+    if (!seenKeys.has(key)){
+      el.remove();
+      elMap.delete(key);
+    }
+  }
 }
 </script>
 </body>
