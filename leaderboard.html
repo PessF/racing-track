@@ -6,7 +6,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- ฟอนต์ Prompt โหลดจากไฟล์ local (ไม่พึ่งอินเทอร์เน็ตหน้างาน) — วางไฟล์
+     .woff2 (และ/หรือ .ttf สำรอง) ไว้ที่ web/fonts/ ตามชื่อไฟล์ด้านล่าง -->
+<style>
+@font-face{font-family:'Prompt';font-weight:400;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-Regular.woff2') format('woff2'),
+      url('fonts/Prompt-Regular.ttf') format('truetype');}
+@font-face{font-family:'Prompt';font-weight:500;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-Medium.woff2') format('woff2'),
+      url('fonts/Prompt-Medium.ttf') format('truetype');}
+@font-face{font-family:'Prompt';font-weight:600;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-SemiBold.woff2') format('woff2'),
+      url('fonts/Prompt-SemiBold.ttf') format('truetype');}
+@font-face{font-family:'Prompt';font-weight:700;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-Bold.woff2') format('woff2'),
+      url('fonts/Prompt-Bold.ttf') format('truetype');}
+@font-face{font-family:'Prompt';font-weight:800;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-ExtraBold.woff2') format('woff2'),
+      url('fonts/Prompt-ExtraBold.ttf') format('truetype');}
+@font-face{font-family:'Prompt';font-weight:900;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-Black.woff2') format('woff2'),
+      url('fonts/Prompt-Black.ttf') format('truetype');}
+</style>
 <style>
   :root{
     /* ===== EasyKids Robotics theme tokens ===== */
@@ -20,7 +41,7 @@
   }
   *{box-sizing:border-box;}
   body{margin:0;
-    font-family:'Kanit','Segoe UI',Tahoma,sans-serif;
+    font-family:'Prompt','Segoe UI',Tahoma,sans-serif;
     color:var(--ink);
     background:
       radial-gradient(ellipse 60vw 60vw at 6% -4%, rgba(124,58,237,.32), transparent 60%),
@@ -42,12 +63,15 @@
 
   .page{position:relative;z-index:1;max-width:1400px;margin:0 auto;}
 
-  /* ===== logo / brand header ===== */
-  .page-header{display:flex;align-items:center;justify-content:center;gap:18px;
-    margin:0 0 2.2vw;flex-wrap:wrap;text-align:left;}
+  /* ===== logo slots — มุมบนซ้าย+ขวา ===== */
+  .corner-logo-left{position:fixed;top:2vh;left:2vw;z-index:5;}
+  .corner-logo-right{position:fixed;top:2vh;right:2vw;z-index:5;}
   .brand-logo{height:64px;width:auto;display:block;
     filter:drop-shadow(0 2px 14px rgba(124,58,237,.55));}
   .brand-logo:not([src]),.brand-logo[src=""]{display:none;}
+
+  .page-header{display:flex;align-items:center;justify-content:center;
+    margin:0 0 2.2vw;flex-wrap:wrap;text-align:center;}
   .header-text h1{font-size:2.6vw;margin:0;letter-spacing:.05em;font-weight:800;}
   .header-text .subtitle{font-size:1.1vw;color:var(--dim);letter-spacing:.2em;
     text-transform:uppercase;font-weight:600;}
@@ -88,10 +112,16 @@
 </style>
 </head>
 <body>
+<!-- logo slots: swap src for your event / school / sponsor logos -->
+<div class="corner-logo-left">
+  <img class="brand-logo" src="logo-left.png" alt="Event logo" onerror="this.style.display='none'">
+</div>
+<div class="corner-logo-right">
+  <img class="brand-logo" src="logo-right.png" alt="Sponsor logo" onerror="this.style.display='none'">
+</div>
+
 <div class="page">
-  <!-- logo slot: swap src for your event / school / sponsor logo -->
   <div class="page-header">
-    <img class="brand-logo" src="logo.png" alt="Event logo" onerror="this.style.display='none'">
     <div class="header-text">
       <h1 id="pageTitle">🏁 Leaderboard</h1>
       <div class="subtitle" id="pageSubtitle">EasyKids Robotics Racing</div>

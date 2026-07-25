@@ -6,7 +6,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- ฟอนต์ Prompt โหลดจากไฟล์ local (ไม่พึ่งอินเทอร์เน็ตหน้างาน) — วางไฟล์
+     .woff2 (และ/หรือ .ttf สำรอง) ไว้ที่ web/fonts/ ตามชื่อไฟล์ด้านล่าง -->
+<style>
+@font-face{font-family:'Prompt';font-weight:400;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-Regular.woff2') format('woff2'),
+      url('fonts/Prompt-Regular.ttf') format('truetype');}
+@font-face{font-family:'Prompt';font-weight:500;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-Medium.woff2') format('woff2'),
+      url('fonts/Prompt-Medium.ttf') format('truetype');}
+@font-face{font-family:'Prompt';font-weight:600;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-SemiBold.woff2') format('woff2'),
+      url('fonts/Prompt-SemiBold.ttf') format('truetype');}
+@font-face{font-family:'Prompt';font-weight:700;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-Bold.woff2') format('woff2'),
+      url('fonts/Prompt-Bold.ttf') format('truetype');}
+@font-face{font-family:'Prompt';font-weight:800;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-ExtraBold.woff2') format('woff2'),
+      url('fonts/Prompt-ExtraBold.ttf') format('truetype');}
+@font-face{font-family:'Prompt';font-weight:900;font-style:normal;font-display:swap;
+  src:url('fonts/Prompt-Black.woff2') format('woff2'),
+      url('fonts/Prompt-Black.ttf') format('truetype');}
+</style>
 <style>
   :root{
     /* ===== EasyKids Robotics theme tokens ===== */
@@ -20,7 +41,7 @@
   }
   *{box-sizing:border-box;}
   html,body{height:100%;margin:0;
-    font-family:'Kanit','Segoe UI',Tahoma,sans-serif;
+    font-family:'Prompt','Segoe UI',Tahoma,sans-serif;
     color:var(--ink);
     background:
       radial-gradient(ellipse 60vw 60vw at 6% 6%, rgba(124,58,237,.32), transparent 60%),
@@ -39,8 +60,9 @@
             mask-image:radial-gradient(ellipse 70% 70% at 50% 40%, black 0%, transparent 75%);
   }
 
-  /* ===== logo / brand slot ===== */
-  .brand-bar{position:fixed;top:2vh;left:2vw;display:flex;align-items:center;gap:1vw;z-index:5;}
+  /* ===== logo / brand slots — มุมบนซ้าย+ขวา ===== */
+  .brand-bar-left{position:fixed;top:2vh;left:2vw;display:flex;align-items:center;gap:1vw;z-index:5;}
+  .brand-bar-right{position:fixed;top:2vh;right:2vw;display:flex;align-items:center;z-index:5;}
   .brand-logo{height:5vh;width:auto;display:block;
     filter:drop-shadow(0 2px 14px rgba(124,58,237,.55));}
   .brand-logo:not([src]),.brand-logo[src=""]{display:none;}
@@ -103,13 +125,16 @@
 </style>
 </head>
 <body>
-  <!-- logo slot: swap src for your event / school / sponsor logo -->
-  <div class="brand-bar">
-    <img class="brand-logo" src="logo.png" alt="Event logo" onerror="this.style.display='none'">
+  <!-- logo slots: swap src for your event / school / sponsor logos -->
+  <div class="brand-bar-left">
+    <img class="brand-logo" src="logo-left.png" alt="Event logo" onerror="this.style.display='none'">
     <div class="brand-text">
       <div class="name">EasyKids Robotics</div>
       <div class="sub">Racing Gate</div>
     </div>
+  </div>
+  <div class="brand-bar-right">
+    <img class="brand-logo" src="logo-right.png" alt="Sponsor logo" onerror="this.style.display='none'">
   </div>
 
   <div class="countdown-overlay" id="countdownOverlay">3</div>
